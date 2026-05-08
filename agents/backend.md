@@ -34,12 +34,19 @@ async def create_invoice(
     return await InvoiceService(db).create(payload)
 ```
 
-## Error Format
+## Error Handling
 ```python
-raise HTTPException(
-    status_code=status.HTTP_404_NOT_FOUND,
-    detail={"code": "INVOICE_NOT_FOUND", "message": f"Invoice {id} not found", "details": {}}
-)
+# Define domain exceptions in app/exceptions.py
+class InvoiceNotFoundError(AppError):
+    status_code = 404
+    code = "INVOICE_NOT_FOUND"
+
+    def __init__(self, invoice_id: str) -> None:
+        super().__init__(f"Invoice {invoice_id} not found")
+
+# In your router — raise the domain exception, never HTTPException directly
+raise InvoiceNotFoundError(invoice_id=str(id))
+# The app-level exception handler in main.py converts this to the JSON error shape
 ```
 
 ## Output Format

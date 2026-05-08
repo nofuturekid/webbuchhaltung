@@ -26,6 +26,7 @@ The orchestrator has delegated a specific testing task to you.
 # tests/test_journal_service.py
 import pytest
 from decimal import Decimal
+from uuid import UUID
 from app.services.journal_service import JournalService
 from app.schemas.journal import JournalEntryCreate
 
@@ -34,8 +35,8 @@ async def test_post_journal_entry_makes_it_immutable(db_session):
     """A posted journal entry must reject subsequent updates."""
     service = JournalService(db_session)
     entry = await service.create(JournalEntryCreate(
-        debit_account_id="0800",
-        credit_account_id="1200",
+        debit_account_id=UUID("00000000-0000-0000-0000-000000000800"),
+        credit_account_id=UUID("00000000-0000-0000-0000-000000001200"),
         amount=Decimal("1190.00"),
         description="Test invoice payment",
     ))
@@ -48,7 +49,7 @@ async def test_post_journal_entry_makes_it_immutable(db_session):
 async def test_vat_calculation_standard_rate(db_session):
     """19% VAT must produce correct net and gross amounts."""
     service = JournalService(db_session)
-    result = service.calculate_vat(net_amount=Decimal("1000.00"), vat_rate=Decimal("0.19"))
+    result = await service.calculate_vat(net_amount=Decimal("1000.00"), vat_rate=Decimal("0.19"))
     assert result.vat_amount == Decimal("190.00")
     assert result.gross_amount == Decimal("1190.00")
 ```

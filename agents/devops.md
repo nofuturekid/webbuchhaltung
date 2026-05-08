@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: webbuchhaltung/backend:latest
+          image: webbuchhaltung/backend:${IMAGE_TAG}
           resources:
             requests:
               cpu: 100m

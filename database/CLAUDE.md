@@ -34,9 +34,9 @@ Account numbers are 4 digits. Key ranges in SKR03:
 - 1xxx: Current assets (Umlaufvermögen)
 - 2xxx: Equity + provisions (Eigenkapital, Rückstellungen)
 - 3xxx: Liabilities (Verbindlichkeiten)
-- 4xxx: Operating expenses (Betriebsausgaben)
-- 5xxx–6xxx: Revenues (Erträge)
-- 8xxx: VAT accounts (Umsatzsteuerkonten)
+- 4xxx: Cost of goods + operating expenses (Wareneinkauf, Betriebsausgaben)
+- 5xxx–6xxx: Other operating costs (Weitere Betriebsausgaben)
+- 8xxx: Revenue accounts (Erlöskonten)
 - 9xxx: Statistical accounts
 
 ## GoBD Hard Rules — NEVER VIOLATE
