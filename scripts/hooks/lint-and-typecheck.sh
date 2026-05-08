@@ -18,14 +18,18 @@ PY_FILES=$(echo "$MODIFIED_FILES" | grep '\.py$' || true)
 if [ -n "$PY_FILES" ]; then
   echo "=== Ruff lint ==="
   if command -v ruff &>/dev/null; then
-    ruff check $PY_FILES || ERRORS=$((ERRORS + 1))
+    while IFS= read -r f; do
+      ruff check "$f" || ERRORS=$((ERRORS + 1))
+    done <<< "$PY_FILES"
   else
     echo "WARN: ruff not installed — skipping Python lint"
   fi
 
   echo "=== mypy type check ==="
   if command -v mypy &>/dev/null; then
-    mypy $PY_FILES --ignore-missing-imports || ERRORS=$((ERRORS + 1))
+    while IFS= read -r f; do
+      mypy "$f" --ignore-missing-imports || ERRORS=$((ERRORS + 1))
+    done <<< "$PY_FILES"
   else
     echo "WARN: mypy not installed — skipping type check"
   fi

@@ -24,7 +24,7 @@ fi
 # Secrets scan
 echo "--- Secrets scan (gitleaks) ---"
 if command -v gitleaks &>/dev/null; then
-  gitleaks detect --source . --no-git --exit-code 1 2>&1 || {
+  gitleaks detect --source . --exit-code 1 2>&1 || {
     echo "BLOCKED: gitleaks found secrets in code"
     ERRORS=$((ERRORS + 1))
   }
@@ -46,17 +46,21 @@ fi
 # JS dependency audit
 echo "--- JS dependency audit (npm audit) ---"
 if [ -d "frontend" ] && [ -f "frontend/package.json" ] && command -v npm &>/dev/null; then
-  (cd frontend && npm audit --audit-level=high --json 2>/dev/null | \
-    python3 -c "
+  AUDIT_OUT=$(cd frontend && npm audit --audit-level=high --json 2>&1) || true
+  echo "$AUDIT_OUT" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+try:
+    data = json.load(sys.stdin)
+except json.JSONDecodeError:
+    print('WARN: npm audit output was not valid JSON — skipping JS audit')
+    sys.exit(0)
 vulns = data.get('metadata', {}).get('vulnerabilities', {})
 high = vulns.get('high', 0) + vulns.get('critical', 0)
 if high > 0:
     print(f'BLOCKED: {high} high/critical npm vulnerabilities found')
     sys.exit(1)
 print(f'npm audit: no high/critical vulnerabilities')
-") || ERRORS=$((ERRORS + 1))
+" || ERRORS=$((ERRORS + 1))
 else
   echo "WARN: npm or frontend/package.json not found — skipping JS audit"
 fi

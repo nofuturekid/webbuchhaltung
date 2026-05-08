@@ -14,7 +14,10 @@ if [ ! -f "$STATUS_FILE" ]; then
   exit 0
 fi
 
-# Append session end marker so orchestrator knows to update on next session start
+# Replace previous session-end marker (if any) to avoid unbounded accumulation
+if grep -q "<!-- session-end:" "$STATUS_FILE"; then
+  grep -v "<!-- session-end:" "$STATUS_FILE" > "${STATUS_FILE}.tmp" && mv "${STATUS_FILE}.tmp" "$STATUS_FILE"
+fi
 echo "" >> "$STATUS_FILE"
 echo "<!-- session-end: $TIMESTAMP -->" >> "$STATUS_FILE"
 
