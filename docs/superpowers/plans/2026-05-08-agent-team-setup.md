@@ -1217,7 +1217,7 @@ These rules come from GoBD (BMF-Schreiben 2019). Violations block the merge.
 ## SKR03 Account Validation
 Valid account ranges (SKR03):
 - 0100–0990: Fixed assets | 1000–1990: Current assets
-- 2000–2990: Equity + provisions | 3000–3990: Liabilities  
+- 2000–2990: Equity + provisions | 3000–3990: Liabilities
 - 4000–4990: Cost of goods | 5000–6990: Operating expenses
 - 8000–8990: Revenue | 9000–9990: Statistical
 
@@ -1392,7 +1392,7 @@ git diff --name-only develop..HEAD | grep "app/models/" && \
 # Backend
 cd backend && pytest --co -q 2>/dev/null | wc -l  # count tests, warn if < 1 per changed file
 
-# Frontend  
+# Frontend
 cd frontend && npx vitest run --reporter=verbose 2>/dev/null | tail -5
 ```
 
