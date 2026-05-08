@@ -8,7 +8,7 @@
 - Git repository initialized
 
 ## In Progress
-- Agent-team infrastructure setup (this plan)
+- Agent-team infrastructure setup (this plan) — Task 1 complete, Tasks 2–10 pending
 
 ## Open
 - Software architecture spec (next brainstorming session)

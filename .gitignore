@@ -15,17 +15,23 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-dist/
+build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 htmlcov/
 .coverage
+.coverage.*
+coverage.xml
+coverage.json
 
 # Node
 node_modules/
 dist/
 *.local
+
+# Docker
+docker-compose.override.yml
 
 # IDE
 .idea/
