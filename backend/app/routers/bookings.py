@@ -21,6 +21,7 @@ from app.services.booking import (
     get_booking,
     list_bookings,
     post_booking,
+    reverse_booking,
     update_booking,
 )
 
@@ -70,6 +71,16 @@ async def post(
     session: AsyncSession = Depends(get_db),
 ) -> BookingResponse:
     return await post_booking(session, booking_id, mandant_id, current_user.id)  # type: ignore[return-value]
+
+
+@router.post("/{booking_id}/reverse", response_model=BookingResponse)
+async def reverse(
+    booking_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    mandant_id: uuid.UUID = Depends(get_mandant_id),
+    session: AsyncSession = Depends(get_db),
+) -> BookingResponse:
+    return await reverse_booking(session, booking_id, mandant_id, current_user.id)  # type: ignore[return-value]
 
 
 @router.get("/{booking_id}/audit-log", response_model=list[dict[str, object]])

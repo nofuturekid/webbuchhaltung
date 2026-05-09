@@ -365,3 +365,115 @@ async def test_audit_log_mandant_isolation(client, db_session):
         f"/api/v1/bookings/{booking_id}/audit-log", headers=headers2
     )
     assert log_resp.status_code == 404
+
+
+async def test_reversal_swaps_accounts_and_posts(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 119000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+
+    rev_resp = await client.post(
+        f"/api/v1/bookings/{booking_id}/reverse", headers=headers
+    )
+    assert rev_resp.status_code == 200
+    rev = rev_resp.json()
+    assert rev["status"] == "posted"
+    assert rev["coa_id"] == str(acc2.id)
+    assert rev["counter_coa_id"] == str(acc1.id)
+    assert rev["reversal_of_id"] == booking_id
+    assert rev["entry_number"] is not None
+    assert isinstance(rev["entry_number"], int)
+
+
+async def test_reversal_marks_original_as_reversed(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 50000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    await client.post(f"/api/v1/bookings/{booking_id}/reverse", headers=headers)
+
+    orig_resp = await client.get(f"/api/v1/bookings/{booking_id}", headers=headers)
+    assert orig_resp.json()["status"] == "reversed"
+
+
+async def test_cannot_reverse_draft_booking(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 50000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    rev_resp = await client.post(
+        f"/api/v1/bookings/{booking_id}/reverse", headers=headers
+    )
+    assert rev_resp.status_code == 409
+
+
+async def test_cannot_reverse_already_reversed_booking(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 50000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    await client.post(f"/api/v1/bookings/{booking_id}/reverse", headers=headers)
+    rev_again = await client.post(
+        f"/api/v1/bookings/{booking_id}/reverse", headers=headers
+    )
+    assert rev_again.status_code == 409
+
+
+async def test_cannot_re_reverse_a_reversal_booking(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 50000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    rev_resp = await client.post(
+        f"/api/v1/bookings/{booking_id}/reverse", headers=headers
+    )
+    reversal_id = rev_resp.json()["id"]
+    re_rev = await client.post(
+        f"/api/v1/bookings/{reversal_id}/reverse", headers=headers
+    )
+    assert re_rev.status_code == 409

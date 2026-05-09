@@ -4,7 +4,12 @@ from datetime import date
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.errors import BookingAlreadyPostedError, NotFoundError, PeriodLockedError
+from app.errors import (
+    BookingAlreadyPostedError,
+    ConflictError,
+    NotFoundError,
+    PeriodLockedError,
+)
 from app.models.booking import Booking
 from app.schemas.booking import BookingCreate, BookingListResponse, BookingUpdate
 from app.services.audit import write_audit
@@ -173,3 +178,71 @@ async def post_booking(
     await session.flush()
     await session.refresh(booking)
     return booking
+
+
+async def reverse_booking(
+    session: AsyncSession,
+    booking_id: uuid.UUID,
+    mandant_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> Booking:
+    original = await get_booking(session, booking_id, mandant_id)
+    if original.status != "posted":
+        raise ConflictError("Only posted bookings can be reversed.")
+    if original.reversal_of_id is not None:
+        raise ConflictError("A reversal booking cannot itself be reversed.")
+
+    period = await get_or_create_period(
+        session, mandant_id, original.date_booking.year, original.date_booking.month
+    )
+    if period.status in ("locked", "archived"):
+        raise PeriodLockedError()
+
+    _prefix = "STORNO: "
+    _max_orig = 60 - len(_prefix)
+    reversal = Booking(
+        mandant_id=mandant_id,
+        booking_type=original.booking_type,
+        date_booking=original.date_booking,
+        date_tax=original.date_tax,
+        amount_cents=original.amount_cents,
+        currency=original.currency,
+        document_number=original.document_number,
+        notes=f"{_prefix}{(original.notes or '')[:_max_orig]}",
+        coa_id=original.counter_coa_id,
+        counter_coa_id=original.coa_id,
+        tax_rate=original.tax_rate,
+        tax_amount_cents=original.tax_amount_cents,
+        tax_key_code=original.tax_key_code,
+        reversal_of_id=original.id,
+        created_by=user_id,
+    )
+    session.add(reversal)
+    await session.flush()
+
+    reversal_number = await get_next_entry_number(session, mandant_id)
+    reversal.status = "posted"
+    reversal.entry_number = reversal_number
+    original.status = "reversed"
+
+    await write_audit(
+        session,
+        "bookings",
+        original.id,
+        "update",
+        {"status": ["posted", "reversed"]},
+        mandant_id,
+        user_id,
+    )
+    await write_audit(
+        session,
+        "bookings",
+        reversal.id,
+        "insert",
+        {"reversal_of": str(original.id), "entry_number": reversal_number},
+        mandant_id,
+        user_id,
+    )
+    await session.flush()
+    await session.refresh(reversal)
+    return reversal
