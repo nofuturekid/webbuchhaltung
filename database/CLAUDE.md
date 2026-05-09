@@ -3,14 +3,18 @@
 You are working on the database layer of WebBuchhaltung (German accounting software).
 
 ## Databases
-- **PostgreSQL 16** — primary production database
-- **MariaDB 10.11** — legacy import only (read-only access for migration tools)
-- **SQLite 3** — test fixtures and offline mode
+Both are fully supported production targets — no DB-specific SQL or features.
+
+- **PostgreSQL 16** — primary dev and production target; async driver: asyncpg
+- **MariaDB 10.11 / MySQL 8** — fully supported production option; async driver: aiomysql
+
+SQLite is explicitly NOT supported. Minimum deployment is Docker Compose with a real DB.
 
 ## Stack
 - SQLAlchemy 2.x — async ORM, use `AsyncSession` everywhere
 - Alembic — all schema changes via migrations, never ALTER TABLE manually
-- asyncpg — async PostgreSQL driver
+- asyncpg (PostgreSQL) / aiomysql (MariaDB) — async drivers
+- Alembic migrations MUST be tested against both backends in CI
 
 ## Project Layout (to be created)
 ```

@@ -1,0 +1,11 @@
+[
+  {"code": 0, "description": "Keine Steuer", "tax_rate": null, "tax_type": "keine"},
+  {"code": 2, "description": "Umsatzsteuer 19% (Regelsteuersatz)", "tax_rate": "0.1900", "tax_type": "USt"},
+  {"code": 3, "description": "Umsatzsteuer 7% (ermäßigter Steuersatz)", "tax_rate": "0.0700", "tax_type": "USt"},
+  {"code": 9, "description": "Vorsteuer 19%", "tax_rate": "0.1900", "tax_type": "VSt"},
+  {"code": 10, "description": "Vorsteuer 7%", "tax_rate": "0.0700", "tax_type": "VSt"},
+  {"code": 40, "description": "Steuerfreie Umsätze §4 Nr. 1a UStG", "tax_rate": null, "tax_type": "steuerfrei"},
+  {"code": 41, "description": "Steuerfreie Umsätze §4 Nr. 1b UStG", "tax_rate": null, "tax_type": "steuerfrei"},
+  {"code": 44, "description": "§13b-Umsätze (Bauleistungen u.ä.)", "tax_rate": null, "tax_type": "§13b"},
+  {"code": 48, "description": "Umsatzsteuer-freie Einnahmen", "tax_rate": null, "tax_type": "UStfrei"}
+]

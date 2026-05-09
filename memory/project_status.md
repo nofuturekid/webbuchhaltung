@@ -1,7 +1,7 @@
 # Project Status
 
-**Last updated:** 2026-05-08
-**Phase:** Setup complete — agent infrastructure ready
+**Last updated:** 2026-05-09
+**Phase:** Phase 1 implementation complete — PR open for review
 
 ## Done
 - Design spec: docs/superpowers/specs/2026-05-08-claude-agent-team-setup-design.md
@@ -13,13 +13,51 @@
 - Claude Code hook wiring: .claude/settings.json
 - Pre-commit framework: .pre-commit-config.yaml
 - CHANGELOG configuration: cliff.toml
+- Phase 1 design spec: docs/superpowers/specs/2026-05-09-phase1-accounting-core-design.md
+- Phase 1 implementation plan: docs/superpowers/plans/2026-05-09-phase1-accounting-core.md
+- Phase 1 backend: JWT auth, Mandant CRUD, SKR03/04 chart of accounts, booking lifecycle (draft/post/reverse), accounting periods (lock/archive), EÜR + Kontoauszug reports, DATEV EXTF v700 export
+- Phase 1 frontend: React 18 skeleton — MUI v6, TanStack Query v5, Vite, TypeScript strict, login page, nginx Docker image
+- PR #1 open: https://github.com/nofuturekid/webbuchhaltung/pull/1
 
 ## In Progress
 - Nothing
 
 ## Open
-- Software architecture spec (next brainstorming session)
-- First feature implementation (accounting module)
+- Merge PR #1 (feature/backend-phase1 → main)
+- Phase 2: Full accounting UI (invoice CRUD, journal view, account statement UI, EÜR report UI)
+
+## Key Decisions (this session)
+- SQLite dropped — PostgreSQL + MariaDB only; Docker Compose = minimum deployment
+- Multi-Mandant from day one; mandant_id always from JWT, never from request body
+- Booking model: flat single table (Approach A) with booking_type enum
+- JWT auth in Phase 1 (basic, no OAuth/RBAC)
+- Phase 1 = backend API + Docker Compose + React skeleton only (no Tier 1, no full UI)
 
 ## Key Decisions
 - See memory/project_decisions.md
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- session-end: 2026-05-09 13:38 -->

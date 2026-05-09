@@ -4,9 +4,11 @@
 German accounting software (Buchhaltungssoftware) targeting small and medium businesses.
 Tax jurisdiction: Germany — HGB, GoBD, UStG, DATEV SKR03/SKR04.
 
-Stack: FastAPI + Python 3.12 | React 18 + TypeScript 5 | PostgreSQL 16 (prod) |
-MariaDB 10.11 (legacy import) | SQLite 3 (tests) | Docker | Kubernetes |
-GitHub Actions + GitLab CI.
+Stack: FastAPI + Python 3.12 | React 18 + TypeScript 5 |
+PostgreSQL 16 | MariaDB 10.11 / MySQL 8 (both fully supported) |
+Docker | Kubernetes | GitHub Actions + GitLab CI.
+
+Minimum deployment: Docker Compose. No SQLite — requires a real DB server.
 
 ## Language Rule — MANDATORY
 ALL code artifacts must be written in English: code, comments, commits, branch names,
