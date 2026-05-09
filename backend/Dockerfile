@@ -11,6 +11,8 @@ COPY pyproject.toml uv.lock ./
 # Install production dependencies only, using the exact locked versions.
 RUN uv sync --frozen --no-dev
 
+ENV PATH="/app/.venv/bin:$PATH"
+
 COPY . .
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
