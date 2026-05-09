@@ -119,8 +119,21 @@ async def get_next_entry_number(session: AsyncSession, mandant_id: uuid.UUID) ->
             {"id": str(mandant_id)},
         )
         return int(result.scalar_one())
+    elif dialect_name in ("mysql", "mariadb"):
+        await session.execute(
+            text(
+                "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 1) "
+                "ON DUPLICATE KEY UPDATE next_value = next_value + 1"
+            ),
+            {"id": str(mandant_id)},
+        )
+        result = await session.execute(
+            text("SELECT next_value FROM booking_sequences WHERE mandant_id = :id"),
+            {"id": str(mandant_id)},
+        )
+        return int(result.scalar_one())
     else:
-        # SQLite and MariaDB: upsert then SELECT
+        # SQLite (test DB)
         await session.execute(
             text(
                 "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 1) "

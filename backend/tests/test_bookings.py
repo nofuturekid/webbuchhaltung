@@ -1,5 +1,6 @@
 import uuid
 
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import ChartOfAccount
@@ -21,8 +22,6 @@ async def _setup(
     session.add(UserMandant(user_id=user.id, mandant_id=mandant.id, role="admin"))
     await session.flush()
     await seed_skr_for_mandant(session, mandant.id, "skr03")
-    from sqlalchemy import select  # noqa: PLC0415
-
     result = await session.execute(
         select(ChartOfAccount).where(ChartOfAccount.mandant_id == mandant.id).limit(2)
     )
@@ -185,8 +184,6 @@ async def test_cannot_update_or_delete_posted_booking(client, db_session):
     )
     booking_id = resp.json()["id"]
     # Force-post the booking directly in DB (posting endpoint is Task 8)
-    from sqlalchemy import update  # noqa: PLC0415
-
     await db_session.execute(
         update(Booking)
         .where(Booking.id == uuid.UUID(booking_id))
@@ -216,8 +213,6 @@ async def test_cannot_update_or_delete_reversed_booking(client, db_session):
         headers=headers,
     )
     booking_id = resp.json()["id"]
-    from sqlalchemy import update  # noqa: PLC0415
-
     await db_session.execute(
         update(Booking)
         .where(Booking.id == uuid.UUID(booking_id))
