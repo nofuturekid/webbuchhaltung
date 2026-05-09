@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest'
 import { formatEuro, formatDate, formatAccountNumber, euroToCents, centsToEuro } from '../formatters'
 
 describe('formatEuro', () => {
@@ -16,6 +15,9 @@ describe('formatEuro', () => {
 describe('formatDate', () => {
   it('formats ISO date as DD.MM.YYYY', () => {
     expect(formatDate('2026-01-15')).toBe('15.01.2026')
+  })
+  it('formats year-end date', () => {
+    expect(formatDate('2026-12-31')).toBe('31.12.2026')
   })
 })
 
@@ -38,10 +40,22 @@ describe('euroToCents', () => {
   it('rounds correctly', () => {
     expect(euroToCents('0.005')).toBe(1)
   })
+  it('throws on non-numeric input', () => {
+    expect(() => euroToCents('abc')).toThrow()
+  })
+  it('handles integer input', () => {
+    expect(euroToCents('100')).toBe(10000)
+  })
 })
 
 describe('centsToEuro', () => {
   it('converts 119000 to "1190.00"', () => {
     expect(centsToEuro(119000)).toBe('1190.00')
+  })
+  it('handles zero', () => {
+    expect(centsToEuro(0)).toBe('0.00')
+  })
+  it('handles negative cents', () => {
+    expect(centsToEuro(-5000)).toBe('-50.00')
   })
 })

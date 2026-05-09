@@ -10,8 +10,6 @@ const dateFormatter = new Intl.DateTimeFormat('de-DE', {
 })
 
 export function formatEuro(cents: number): string {
-  // Intl outputs a non-breaking space (U+00A0) before the currency symbol;
-  // normalize to a regular space for consistent string comparison.
   return euroFormatter.format(cents / 100).replace('\u00a0', ' ')
 }
 
@@ -24,7 +22,10 @@ export function formatAccountNumber(num: string): string {
 }
 
 export function euroToCents(euro: string): number {
-  return Math.round(parseFloat(euro.replace(',', '.')) * 100)
+  const normalized = euro.replace(',', '.')
+  const result = Math.round(parseFloat(normalized) * 100)
+  if (isNaN(result)) throw new Error(`Invalid amount: "${euro}"`)
+  return result
 }
 
 export function centsToEuro(cents: number): string {
