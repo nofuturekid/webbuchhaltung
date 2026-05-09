@@ -322,8 +322,21 @@ def upgrade() -> None:
             CREATE OR REPLACE FUNCTION prevent_posted_booking_update()
             RETURNS TRIGGER AS $$
             BEGIN
-                IF OLD.status = 'posted' AND NEW.status != 'reversed' THEN
-                    RAISE EXCEPTION 'Cannot modify a posted booking. Use reversal instead.';
+                IF OLD.status = 'posted' THEN
+                    IF NEW.status != 'reversed' THEN
+                        RAISE EXCEPTION 'Cannot modify a posted booking. Use reversal instead.';
+                    END IF;
+                    IF (NEW.amount_cents      != OLD.amount_cents      OR
+                        NEW.coa_id            IS DISTINCT FROM OLD.coa_id OR
+                        NEW.counter_coa_id    IS DISTINCT FROM OLD.counter_coa_id OR
+                        NEW.date_booking      != OLD.date_booking      OR
+                        NEW.tax_rate          IS DISTINCT FROM OLD.tax_rate OR
+                        NEW.tax_amount_cents  IS DISTINCT FROM OLD.tax_amount_cents OR
+                        NEW.entry_number      IS DISTINCT FROM OLD.entry_number OR
+                        NEW.mandant_id        != OLD.mandant_id        OR
+                        NEW.booking_type      != OLD.booking_type) THEN
+                        RAISE EXCEPTION 'Cannot modify booking fields during reversal status update.';
+                    END IF;
                 END IF;
                 RETURN NEW;
             END;
@@ -362,3 +375,17 @@ def downgrade() -> None:
     op.drop_table("tax_keys")
     op.drop_table("mandants")
     # ### end Alembic commands ###
+    if bind.dialect.name == "postgresql":
+        import sqlalchemy as sa_inner
+
+        for enum_name in [
+            "booking_status_enum",
+            "booking_type_enum",
+            "user_role_enum",
+            "skr_source_enum",
+            "audit_action_enum",
+            "period_status_enum",
+            "tax_type_enum",
+            "skr_variant_enum",
+        ]:
+            sa_inner.Enum(name=enum_name).drop(op.get_bind(), checkfirst=True)

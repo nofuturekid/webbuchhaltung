@@ -33,7 +33,9 @@ class AccountingPeriod(Base):
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(
-        SAEnum("open", "locked", "archived", name="period_status_enum"), default="open"
+        SAEnum("open", "locked", "archived", name="period_status_enum"),
+        default="open",
+        nullable=False,
     )
     locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

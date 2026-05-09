@@ -81,11 +81,12 @@ class Booking(Base, TimestampMixin):
     date_booking: Mapped[date] = mapped_column(Date, nullable=False)
     date_tax: Mapped[date | None] = mapped_column(Date)
     amount_cents: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    currency: Mapped[str] = mapped_column(String(3), default="EUR", nullable=False)
     document_number: Mapped[str | None] = mapped_column(String(12))
     status: Mapped[str] = mapped_column(
         SAEnum("draft", "posted", "reversed", name="booking_status_enum"),
         default="draft",
+        nullable=False,
     )
     notes: Mapped[str | None] = mapped_column(String(60))
     entry_number: Mapped[int | None] = mapped_column(BigInteger)
