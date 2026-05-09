@@ -141,5 +141,44 @@ async def test_kontoauszug_running_balance(client, db_session):
     # Bank is counter_coa_id for both bookings (credited both times)
     assert data["lines"][0]["credit_cents"] == 119000
     assert data["lines"][1]["credit_cents"] == 59500
-    # Closing balance: 0 - 119000 - 59500 = -178500 (bank credited = negative running)
+    # opening_balance = 0 (no prior bookings); bank credited both times
+    assert data["opening_balance_cents"] == 0
     assert data["closing_balance_cents"] == -178500
+
+
+async def test_eur_excludes_out_of_range_bookings(client, db_session):
+    headers, mandant, revenue, expense, bank = await _setup_with_bookings(
+        db_session, client
+    )
+    # Query a range that excludes both bookings (Jan 15 and Jan 20 are outside Feb)
+    resp = await client.get(
+        "/api/v1/reports/eur?date_from=2026-02-01&date_to=2026-02-28",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["betriebseinnahmen_cents"] == 0
+    assert data["betriebsausgaben_cents"] == 0
+    assert data["items"] == []
+
+
+async def test_reports_mandant_isolation(client, db_session):
+    headers1, mandant1, revenue, expense, bank = await _setup_with_bookings(
+        db_session, client
+    )
+    # Create second mandant with no bookings
+    user2 = User(email=f"iso{uuid.uuid4()}@x.com", hashed_password=hash_password("pw"))
+    db_session.add(user2)
+    mandant2 = Mandant(name="IsoReport GmbH", skr_variant="skr03")
+    db_session.add(mandant2)
+    await db_session.flush()
+    db_session.add(UserMandant(user_id=user2.id, mandant_id=mandant2.id, role="admin"))
+    await db_session.flush()
+    headers2 = {"Authorization": f"Bearer {create_access_token(user2.id, mandant2.id)}"}
+    eur_resp = await client.get(
+        "/api/v1/reports/eur?date_from=2026-01-01&date_to=2026-01-31",
+        headers=headers2,
+    )
+    assert eur_resp.status_code == 200
+    assert eur_resp.json()["betriebseinnahmen_cents"] == 0
+    assert eur_resp.json()["items"] == []
