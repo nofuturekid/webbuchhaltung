@@ -7,6 +7,7 @@ from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import bookings as bookings_router
 from app.routers import mandants as mandants_router
+from app.routers import periods as periods_router
 from app.routers import tax_keys as tax_keys_router
 
 app = FastAPI(title="WebBuchhaltung API", version="0.1.0")
@@ -27,6 +28,7 @@ app.include_router(admin_router.router, prefix="/api/v1")
 app.include_router(accounts_router.router, prefix="/api/v1")
 app.include_router(tax_keys_router.router, prefix="/api/v1")
 app.include_router(bookings_router.router, prefix="/api/v1")
+app.include_router(periods_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
