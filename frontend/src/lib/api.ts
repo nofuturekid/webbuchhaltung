@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '../store/auth'
 
 const api = axios.create({ baseURL: '/api/v1' })
 
@@ -20,12 +21,11 @@ api.interceptors.response.use(
             '/api/v1/auth/refresh',
             { refresh_token: refresh }
           )
-          localStorage.setItem('access_token', data.access_token)
+          useAuthStore.getState().setAccessToken(data.access_token)
           error.config.headers.Authorization = `Bearer ${data.access_token}`
           return api.request(error.config)
         } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
+          useAuthStore.getState().logout()
           window.location.href = '/login'
         }
       } else {
