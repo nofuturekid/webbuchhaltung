@@ -5,8 +5,9 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import UndoIcon from '@mui/icons-material/Undo'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { formatEuro, formatDate } from '../../lib/formatters'
+import { formatEuro, formatDate, formatAccountNumber } from '../../lib/formatters'
 import { useBookings, usePostBooking, useReverseBooking, useDeleteBooking } from './api'
+import { useAccounts } from '../accounts/api'
 import type { BookingResponse } from '../../types/api'
 
 const STATUS_COLORS: Record<string, 'default' | 'warning' | 'success' | 'error'> = {
@@ -26,9 +27,12 @@ function StatusChip({ status }: { status: string }) {
 
 export default function BookingList() {
   const { data, isLoading } = useBookings()
+  const { data: accounts = [] } = useAccounts()
   const post = usePostBooking()
   const reverse = useReverseBooking()
   const del = useDeleteBooking()
+
+  const accountMap = new Map(accounts.map((a) => [a.id, a.account_number]))
 
   if (isLoading) return <Typography>Lade…</Typography>
   if (!data?.items.length) return <Typography color="text.secondary">Keine Buchungen vorhanden.</Typography>
@@ -53,8 +57,12 @@ export default function BookingList() {
             <TableCell sx={{ fontFamily: 'monospace' }}>{b.entry_number ?? '–'}</TableCell>
             <TableCell>{formatDate(b.date_booking)}</TableCell>
             <TableCell>{b.document_number ?? '–'}</TableCell>
-            <TableCell sx={{ fontFamily: 'monospace' }}>{b.coa_id ?? '–'}</TableCell>
-            <TableCell sx={{ fontFamily: 'monospace' }}>{b.counter_coa_id ?? '–'}</TableCell>
+            <TableCell sx={{ fontFamily: 'monospace' }}>
+              {b.coa_id ? formatAccountNumber(accountMap.get(b.coa_id) ?? '????') : '–'}
+            </TableCell>
+            <TableCell sx={{ fontFamily: 'monospace' }}>
+              {b.counter_coa_id ? formatAccountNumber(accountMap.get(b.counter_coa_id) ?? '????') : '–'}
+            </TableCell>
             <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
               {formatEuro(b.amount_cents)}
             </TableCell>

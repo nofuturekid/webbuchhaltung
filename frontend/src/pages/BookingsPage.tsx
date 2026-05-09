@@ -2,6 +2,7 @@ import { Box, Typography, Button } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import { useState } from 'react'
 import BookingList from '../features/bookings/BookingList'
+import BookingForm from '../features/bookings/BookingForm'
 
 export default function BookingsPage() {
   const [showForm, setShowForm] = useState(false)
@@ -18,7 +19,7 @@ export default function BookingsPage() {
           Neue Buchung
         </Button>
       </Box>
-      {showForm && <Typography color="text.secondary">Formular wird in Aufgabe 8 hinzugefügt.</Typography>}
+      {showForm && <BookingForm onSuccess={() => setShowForm(false)} />}
       <BookingList />
     </Box>
   )
