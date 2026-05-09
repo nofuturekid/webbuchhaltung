@@ -20,11 +20,18 @@
 - PR #1 open: https://github.com/nofuturekid/webbuchhaltung/pull/1
 
 ## In Progress
-- Nothing
+- Phase 2 frontend implementation (branch: feature/frontend-phase2)
+  - Task 10 (Kontoauszug): DONE — account statement with account selector, date range filters, debit/credit table
+  - Task 11 (EÜR report): PENDING
+  - Task 12 (DATEV export UI): PENDING
+  - Task 13 (Dashboard): PENDING
+  - Task 14 (Full stack verification + PR): PENDING
 
 ## Open
 - Merge PR #1 (feature/backend-phase1 → main)
-- Phase 2: Full accounting UI (invoice CRUD, journal view, account statement UI, EÜR report UI)
+- Complete Phase 2 frontend (Tasks 11-14)
+- Full stack verification and integration testing
+- Open Phase 2 PR (feature/frontend-phase2 → main)
 
 ## Key Decisions (this session)
 - SQLite dropped — PostgreSQL + MariaDB only; Docker Compose = minimum deployment
@@ -66,4 +73,6 @@
 
 
 
-<!-- session-end: 2026-05-09 17:35 -->
+
+
+<!-- session-end: 2026-05-09 17:37 -->
