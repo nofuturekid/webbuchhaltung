@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context  # type: ignore[attr-defined]
 from app.config import settings
 from app.models.base import Base
+from app.models import mandant, user, account, booking, period  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
