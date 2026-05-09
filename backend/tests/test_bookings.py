@@ -1,12 +1,18 @@
 import uuid
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.account import ChartOfAccount
+from app.models.booking import Booking
 from app.models.mandant import Mandant
 from app.models.user import User, UserMandant
 from app.services.account import seed_skr_for_mandant
 from app.services.auth import create_access_token, hash_password
 
 
-async def _setup(session):  # type: ignore[no-untyped-def]
+async def _setup(
+    session: AsyncSession,
+) -> tuple[dict[str, str], User, Mandant, ChartOfAccount, ChartOfAccount]:
     user = User(email=f"b{uuid.uuid4()}@x.com", hashed_password=hash_password("pw"))
     session.add(user)
     mandant = Mandant(name="BookTest GmbH", skr_variant="skr03")
@@ -16,8 +22,6 @@ async def _setup(session):  # type: ignore[no-untyped-def]
     await session.flush()
     await seed_skr_for_mandant(session, mandant.id, "skr03")
     from sqlalchemy import select
-
-    from app.models.account import ChartOfAccount
 
     result = await session.execute(
         select(ChartOfAccount).where(ChartOfAccount.mandant_id == mandant.id).limit(2)
@@ -163,3 +167,37 @@ async def test_list_bookings_returns_paginated(client, db_session):
     assert "items" in body
     assert "total" in body
     assert body["total"] == 3
+    assert body["page"] == 1
+    assert body["page_size"] == 50
+
+
+async def test_cannot_update_or_delete_posted_booking(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 100000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    # Force-post the booking directly in DB (posting endpoint is Task 8)
+    from sqlalchemy import update
+
+    await db_session.execute(
+        update(Booking)
+        .where(Booking.id == uuid.UUID(booking_id))
+        .values(status="posted", entry_number=1)
+    )
+    await db_session.flush()
+    patch_resp = await client.patch(
+        f"/api/v1/bookings/{booking_id}", json={"notes": "Attempt"}, headers=headers
+    )
+    assert patch_resp.status_code == 422
+    assert patch_resp.json()["error"]["code"] == "BOOKING_ALREADY_POSTED"
+    delete_resp = await client.delete(f"/api/v1/bookings/{booking_id}", headers=headers)
+    assert delete_resp.status_code == 422
+    assert delete_resp.json()["error"]["code"] == "BOOKING_ALREADY_POSTED"

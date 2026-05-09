@@ -48,7 +48,7 @@ async def list_bookings(
             (Booking.coa_id == account_id) | (Booking.counter_coa_id == account_id)
         )
     count_q = select(func.count()).select_from(q.subquery())
-    total = (await session.execute(count_q)).scalar() or 0
+    total = (await session.execute(count_q)).scalar_one()
     items_result = await session.execute(
         q.order_by(Booking.date_booking.desc())
         .offset((page - 1) * page_size)
