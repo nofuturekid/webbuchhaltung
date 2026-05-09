@@ -124,3 +124,80 @@ feature/<scope>-<ticket>   # feature work
 hotfix/<ticket>   # urgent fix on main base
 release/<version> # release prep
 ```
+
+## Local Testing — ALWAYS verify in this order
+
+### 1. Unit/integration tests (fast, no Docker)
+```bash
+cd backend && uv run pytest tests/ -q
+```
+66 tests, ~13s, SQLite in-memory. Run after every backend change.
+
+### 2. Full stack with Docker Compose
+```bash
+docker compose up --build -d
+docker compose exec backend uv run alembic upgrade head
+```
+
+Seed the first admin user (only needed on a fresh database):
+```bash
+docker compose exec backend uv run python -c "
+import asyncio
+from app.database import engine
+from app.models.user import User, UserMandant
+from app.models.mandant import Mandant
+from app.services.auth import hash_password
+from app.services.account import seed_skr_for_mandant
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+async def seed():
+    s = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with s() as session:
+        user = User(email='admin@example.com', hashed_password=hash_password('admin123'))
+        session.add(user)
+        mandant = Mandant(name='Muster GmbH', skr_variant='skr03',
+                          datev_beraternummer='70000', datev_mandantennummer='12345')
+        session.add(mandant)
+        await session.flush()
+        session.add(UserMandant(user_id=user.id, mandant_id=mandant.id, role='admin'))
+        await session.flush()
+        await seed_skr_for_mandant(session, mandant.id, 'skr03')
+        await session.commit()
+        print('seeded mandant_id=' + str(mandant.id))
+
+asyncio.run(seed())
+"
+```
+
+### 3. Smoke test (end-to-end curl)
+```bash
+# Health
+curl http://localhost:8000/health  # → {"status":"ok"}
+curl http://localhost:3000         # → HTML login page
+
+# Login → switch mandant (replace MANDANT_ID from seed output above)
+TOKEN1=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"admin123"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
+  "http://localhost:8000/api/v1/mandants/<MANDANT_ID>/switch" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# Verify accounts seeded (should return ~90 SKR03 accounts)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
+  python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
+
+# API docs
+open http://localhost:8000/docs
+```
+
+### Known Docker gotchas
+- Running `uv run pytest` on the host rebuilds `.venv` with the system Python,
+  which the Docker volume mount then exposes inside the container. This makes
+  uvicorn's watchfiles hang scanning thousands of venv files.
+  Fix: `--reload-dir app` in docker-compose.yml (already set).
+- `get_db` must commit after yield — without it writes are rolled back on session
+  close. Tests pass anyway because they use savepoint sessions.
