@@ -230,3 +230,115 @@ async def test_cannot_update_or_delete_reversed_booking(client, db_session):
     assert patch_resp.status_code == 422
     delete_resp = await client.delete(f"/api/v1/bookings/{booking_id}", headers=headers)
     assert delete_resp.status_code == 422
+
+
+async def test_post_booking_assigns_entry_number(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 119000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    post_resp = await client.post(
+        f"/api/v1/bookings/{booking_id}/post", headers=headers
+    )
+    assert post_resp.status_code == 200
+    data = post_resp.json()
+    assert data["status"] == "posted"
+    assert data["entry_number"] is not None
+    assert isinstance(data["entry_number"], int)
+
+
+async def test_posted_booking_is_immutable(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 119000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    patch_resp = await client.patch(
+        f"/api/v1/bookings/{booking_id}", json={"notes": "x"}, headers=headers
+    )
+    assert patch_resp.status_code == 422
+    assert patch_resp.json()["error"]["code"] == "BOOKING_ALREADY_POSTED"
+    del_resp = await client.delete(f"/api/v1/bookings/{booking_id}", headers=headers)
+    assert del_resp.status_code == 422
+
+
+async def test_entry_numbers_are_sequential_no_gaps(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    ids = []
+    for _ in range(3):
+        r = await client.post(
+            "/api/v1/bookings",
+            json={
+                "date_booking": "2026-01-15",
+                "amount_cents": 10000,
+                "coa_id": str(acc1.id),
+                "counter_coa_id": str(acc2.id),
+            },
+            headers=headers,
+        )
+        ids.append(r.json()["id"])
+    numbers = []
+    for bid in ids:
+        r = await client.post(f"/api/v1/bookings/{bid}/post", headers=headers)
+        numbers.append(r.json()["entry_number"])
+    assert numbers == sorted(numbers)
+    assert len(set(numbers)) == 3
+
+
+async def test_audit_log_written_on_post(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 50000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    log_resp = await client.get(
+        f"/api/v1/bookings/{booking_id}/audit-log", headers=headers
+    )
+    assert log_resp.status_code == 200
+    entries = log_resp.json()
+    assert len(entries) >= 1
+    assert entries[-1]["action"] == "update"
+    assert "status" in entries[-1]["change_summary"]
+
+
+async def test_cannot_post_already_posted_booking(client, db_session):
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 10000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    resp2 = await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
+    assert resp2.status_code == 422
+    assert resp2.json()["error"]["code"] == "BOOKING_ALREADY_POSTED"

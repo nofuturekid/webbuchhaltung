@@ -1,12 +1,14 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.errors import BookingAlreadyPostedError, NotFoundError
+from app.errors import BookingAlreadyPostedError, NotFoundError, PeriodLockedError
 from app.models.booking import Booking
 from app.schemas.booking import BookingCreate, BookingListResponse, BookingUpdate
+from app.services.audit import write_audit
+from app.services.period import get_or_create_period
 
 
 async def get_booking(
@@ -101,3 +103,70 @@ async def delete_booking(
         raise BookingAlreadyPostedError()
     await session.delete(booking)
     await session.flush()
+
+
+async def get_next_entry_number(session: AsyncSession, mandant_id: uuid.UUID) -> int:
+    conn = await session.connection()
+    dialect_name = conn.dialect.name
+    if dialect_name == "postgresql":
+        result = await session.execute(
+            text(
+                "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 2) "
+                "ON CONFLICT (mandant_id) DO UPDATE "
+                "SET next_value = booking_sequences.next_value + 1 "
+                "RETURNING next_value - 1"
+            ),
+            {"id": str(mandant_id)},
+        )
+        return int(result.scalar_one())
+    else:
+        # SQLite and MariaDB: upsert then SELECT
+        await session.execute(
+            text(
+                "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 1) "
+                "ON CONFLICT (mandant_id) DO UPDATE SET next_value = next_value + 1"
+            ),
+            {"id": str(mandant_id)},
+        )
+        result = await session.execute(
+            text("SELECT next_value FROM booking_sequences WHERE mandant_id = :id"),
+            {"id": str(mandant_id)},
+        )
+        return int(result.scalar_one())
+
+
+async def post_booking(
+    session: AsyncSession,
+    booking_id: uuid.UUID,
+    mandant_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> Booking:
+    booking = await get_booking(session, booking_id, mandant_id)
+    if booking.status != "draft":
+        raise BookingAlreadyPostedError()
+
+    period = await get_or_create_period(
+        session, mandant_id, booking.date_booking.year, booking.date_booking.month
+    )
+    if period.status in ("locked", "archived"):
+        raise PeriodLockedError()
+
+    entry_number = await get_next_entry_number(session, mandant_id)
+    booking.status = "posted"
+    booking.entry_number = entry_number
+
+    await write_audit(
+        session,
+        table_name="bookings",
+        record_id=booking.id,
+        action="update",
+        change_summary={
+            "status": ["draft", "posted"],
+            "entry_number": [None, entry_number],
+        },
+        mandant_id=mandant_id,
+        user_id=user_id,
+    )
+    await session.flush()
+    await session.refresh(booking)
+    return booking

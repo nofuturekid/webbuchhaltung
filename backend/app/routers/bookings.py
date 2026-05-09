@@ -14,11 +14,13 @@ from app.schemas.booking import (
     BookingResponse,
     BookingUpdate,
 )
+from app.services.audit import list_booking_audit_log
 from app.services.booking import (
     create_booking,
     delete_booking,
     get_booking,
     list_bookings,
+    post_booking,
     update_booking,
 )
 
@@ -58,6 +60,27 @@ async def create(
     session: AsyncSession = Depends(get_db),
 ) -> BookingResponse:
     return await create_booking(session, mandant_id, current_user.id, body)  # type: ignore[return-value]
+
+
+@router.post("/{booking_id}/post", response_model=BookingResponse)
+async def post(
+    booking_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    mandant_id: uuid.UUID = Depends(get_mandant_id),
+    session: AsyncSession = Depends(get_db),
+) -> BookingResponse:
+    return await post_booking(session, booking_id, mandant_id, current_user.id)  # type: ignore[return-value]
+
+
+@router.get("/{booking_id}/audit-log", response_model=list[dict[str, object]])
+async def audit_log(
+    booking_id: uuid.UUID,
+    mandant_id: uuid.UUID = Depends(get_mandant_id),
+    session: AsyncSession = Depends(get_db),
+) -> list[dict[str, object]]:
+    # Verify booking exists and belongs to mandant
+    await get_booking(session, booking_id, mandant_id)
+    return await list_booking_audit_log(session, booking_id)
 
 
 @router.get("/{booking_id}", response_model=BookingResponse)
