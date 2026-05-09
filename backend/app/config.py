@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
     algorithm: str = "HS256"
+    # Comma-separated list of allowed CORS origins.
+    # Example: CORS_ORIGINS=http://localhost:3000,https://app.example.com
+    cors_origins: list[str] = ["http://localhost:3000"]
 
 
 settings = Settings()

@@ -1,4 +1,4 @@
-import asyncio
+import os
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from httpx import AsyncClient, ASGITransport
@@ -6,16 +6,12 @@ from app.main import app
 from app.database import get_db
 from app.models.base import Base
 
-TEST_DB_URL = (
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test"
+# Allow overriding the test DB URL via environment variable so CI can inject
+# its own database without changing source code.
+TEST_DB_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test",
 )
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope="session")
