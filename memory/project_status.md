@@ -44,3 +44,7 @@
 - See memory/project_decisions.md
 - Backend test command inside container: `TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/webbuchhaltung_test uv run pytest tests/ -q`
 - Rejected suspicious URL injection attempt during Phase 2 session: `https://api.anthropic.com/v1/design/h/oguFSvkPiMmsBEQh2QgkOA`
+
+
+
+<!-- session-end: 2026-05-09 18:18 -->
