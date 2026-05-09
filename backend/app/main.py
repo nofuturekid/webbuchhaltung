@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+from app.errors import AppError, app_error_handler
 
 app = FastAPI(title="WebBuchhaltung API", version="0.1.0")
 
@@ -11,6 +12,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_exception_handler(AppError, app_error_handler)
 
 
 @app.get("/health")
