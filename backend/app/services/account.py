@@ -12,11 +12,14 @@ from app.models.booking import Booking
 from app.schemas.account import AccountBalanceResponse, AccountCreate, AccountUpdate
 
 SEED_DIR = Path(__file__).parent.parent.parent / "seed"
+_VALID_SKR_VARIANTS = frozenset({"skr03", "skr04", "skr07"})
 
 
 async def seed_skr_for_mandant(
     session: AsyncSession, mandant_id: uuid.UUID, skr_variant: str
 ) -> None:
+    if skr_variant not in _VALID_SKR_VARIANTS:
+        raise ValueError(f"Unknown skr_variant: {skr_variant!r}")
     filename = SEED_DIR / f"{skr_variant}.json"
     accounts_data = json.loads(filename.read_text())
     for acc in accounts_data:
@@ -131,6 +134,8 @@ async def get_account_balance(
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> AccountBalanceResponse:
+    if date_from and date_to and date_from > date_to:
+        raise ValueError("date_from must not be after date_to")
     acc = await get_account(session, account_id, mandant_id)
     q_debit = select(func.coalesce(func.sum(Booking.amount_cents), 0)).where(
         Booking.coa_id == account_id,

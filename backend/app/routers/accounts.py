@@ -43,6 +43,19 @@ async def create(
     return await create_custom_account(session, mandant_id, body)  # type: ignore[return-value]
 
 
+@router.get("/{account_id}/balance", response_model=AccountBalanceResponse)
+async def balance(
+    account_id: uuid.UUID,
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    mandant_id: uuid.UUID = Depends(get_mandant_id),
+    session: AsyncSession = Depends(get_db),
+) -> AccountBalanceResponse:
+    return await get_account_balance(
+        session, account_id, mandant_id, date_from, date_to
+    )
+
+
 @router.get("/{account_id}", response_model=AccountResponse)
 async def get(
     account_id: uuid.UUID,
@@ -69,16 +82,3 @@ async def delete(
     session: AsyncSession = Depends(get_db),
 ) -> None:
     await deactivate_account(session, account_id, mandant_id)
-
-
-@router.get("/{account_id}/balance", response_model=AccountBalanceResponse)
-async def balance(
-    account_id: uuid.UUID,
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
-    mandant_id: uuid.UUID = Depends(get_mandant_id),
-    session: AsyncSession = Depends(get_db),
-) -> AccountBalanceResponse:
-    return await get_account_balance(
-        session, account_id, mandant_id, date_from, date_to
-    )
