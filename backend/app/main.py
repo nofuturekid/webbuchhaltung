@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.errors import AppError, app_error_handler
+from app.routers import admin as admin_router
 from app.routers import auth as auth_router
+from app.routers import mandants as mandants_router
 
 app = FastAPI(title="WebBuchhaltung API", version="0.1.0")
 
@@ -17,6 +19,8 @@ app.add_middleware(
 app.add_exception_handler(AppError, app_error_handler)
 
 app.include_router(auth_router.router, prefix="/api/v1")
+app.include_router(mandants_router.router, prefix="/api/v1")
+app.include_router(admin_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
