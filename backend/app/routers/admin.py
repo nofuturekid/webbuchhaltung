@@ -45,11 +45,26 @@ async def _require_admin(
         raise ForbiddenError("Admin role required.")
 
 
+async def _require_any_admin(
+    current_user: User,
+    session: AsyncSession,
+) -> None:
+    result = await session.execute(
+        select(UserMandant).where(
+            UserMandant.user_id == current_user.id,
+            UserMandant.role == "admin",
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise ForbiddenError("Admin role required.")
+
+
 @router.get("/users", response_model=list[UserResponse])
 async def list_users(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> list[UserResponse]:
+    await _require_any_admin(current_user, session)
     result = await session.execute(select(User))
     return list(result.scalars().all())  # type: ignore[return-value]
 
@@ -60,6 +75,7 @@ async def create_user(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> User:
+    await _require_any_admin(current_user, session)
     user = User(email=body.email, hashed_password=hash_password(body.password))
     session.add(user)
     await session.flush()
@@ -74,6 +90,7 @@ async def update_user(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> User:
+    await _require_any_admin(current_user, session)
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
