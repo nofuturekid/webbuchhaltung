@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.mandant import Mandant
 from app.models.user import User, UserMandant
-from app.services.auth import create_access_token, hash_password
+from app.services.auth import create_access_token, decode_token, hash_password
 
 
 async def _setup_user_and_mandant(session: AsyncSession) -> tuple[User, Mandant]:
@@ -53,8 +53,6 @@ async def test_switch_mandant_issues_scoped_token(
         f"/api/v1/mandants/{mandant.id}/switch", headers=_auth(user)
     )
     assert resp.status_code == 200
-    from app.services.auth import decode_token
-
     payload = decode_token(resp.json()["access_token"])
     assert payload["mandant_id"] == str(mandant.id)
 

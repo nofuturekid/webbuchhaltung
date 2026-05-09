@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr
@@ -26,7 +27,7 @@ class UserUpdate(BaseModel):
 
 class UserMandantAssign(BaseModel):
     user_id: uuid.UUID
-    role: str = "bookkeeper"
+    role: Literal["admin", "bookkeeper", "readonly"] = "bookkeeper"
 
 
 async def _require_admin(
@@ -65,7 +66,16 @@ async def list_users(
     session: AsyncSession = Depends(get_db),
 ) -> list[UserResponse]:
     await _require_any_admin(current_user, session)
-    result = await session.execute(select(User))
+    admin_mandant_ids = select(UserMandant.mandant_id).where(
+        UserMandant.user_id == current_user.id,
+        UserMandant.role == "admin",
+    )
+    result = await session.execute(
+        select(User)
+        .join(UserMandant, UserMandant.user_id == User.id)
+        .where(UserMandant.mandant_id.in_(admin_mandant_ids))
+        .distinct()
+    )
     return list(result.scalars().all())  # type: ignore[return-value]
 
 
@@ -110,6 +120,9 @@ async def assign_user_to_mandant(
     session: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     await _require_admin(mandant_id, current_user, session)
+    user_result = await session.execute(select(User).where(User.id == body.user_id))
+    if not user_result.scalar_one_or_none():
+        raise NotFoundError(f"User {body.user_id} not found.")
     link = UserMandant(user_id=body.user_id, mandant_id=mandant_id, role=body.role)
     session.add(link)
     await session.flush()
