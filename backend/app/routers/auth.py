@@ -1,7 +1,6 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -20,6 +19,7 @@ from app.services.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_user_by_id,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -43,12 +43,7 @@ async def refresh(
     payload = decode_token(body.refresh_token)
     if payload.get("type") != "refresh":
         raise UnauthorizedError("Invalid token type.")
-    result = await session.execute(
-        select(User).where(User.id == uuid.UUID(payload["sub"]))
-    )
-    user = result.scalar_one_or_none()
-    if not user or not user.is_active:
-        raise UnauthorizedError("User not found.")
+    user = await get_user_by_id(session, uuid.UUID(str(payload["sub"])))
     return AccessTokenResponse(access_token=create_access_token(user.id))
 
 

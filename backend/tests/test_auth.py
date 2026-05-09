@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.services.auth import (
     create_access_token,
+    create_refresh_token,
     decode_token,
     hash_password,
     verify_password,
@@ -82,3 +83,21 @@ async def test_refresh_token_flow(client, db_session: AsyncSession) -> None:
     )
     assert refresh_resp.status_code == 200
     assert "access_token" in refresh_resp.json()
+
+
+async def test_me_rejects_refresh_token(client, db_session: AsyncSession) -> None:
+    user = await _create_user(db_session, "refresh-me@example.com", "pass")
+    token = create_refresh_token(user.id)
+    response = await client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+async def test_refresh_rejects_access_token(client, db_session: AsyncSession) -> None:
+    user = await _create_user(db_session, "access-refresh@example.com", "pass")
+    token = create_access_token(user.id)
+    response = await client.post("/api/v1/auth/refresh", json={"refresh_token": token})
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHORIZED"

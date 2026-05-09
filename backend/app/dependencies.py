@@ -23,7 +23,7 @@ async def get_current_user(
     if payload.get("type") != "access":
         raise UnauthorizedError("Invalid token type.")
     result = await session.execute(
-        select(User).where(User.id == uuid.UUID(payload["sub"]))
+        select(User).where(User.id == uuid.UUID(str(payload["sub"])))
     )
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
@@ -37,7 +37,9 @@ def get_mandant_id(
     if credentials is None:
         raise UnauthorizedError("Not authenticated.")
     payload = decode_token(credentials.credentials)
+    if payload.get("type") != "access":
+        raise UnauthorizedError("Invalid token type.")
     mandant_id = payload.get("mandant_id")
     if not mandant_id:
         raise UnauthorizedError("No Mandant selected. Use /mandants/{id}/switch first.")
-    return uuid.UUID(mandant_id)
+    return uuid.UUID(str(mandant_id))
