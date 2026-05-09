@@ -5,6 +5,7 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.database import get_db
 from app.models.base import Base
+import app.models as _models  # noqa: F401 — registers all ORM models in Base.metadata
 
 # Allow overriding the test DB URL via environment variable so CI can inject
 # its own database without changing source code.
