@@ -2,14 +2,19 @@ import type { ReactNode } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import BookingsPage from './pages/BookingsPage'
+import AccountsPage from './pages/AccountsPage'
+import KontoauszugPage from './pages/KontoauszugPage'
+import EURPage from './pages/EURPage'
+import DatevPage from './pages/DatevPage'
 import Layout from './components/Layout'
-
-function useAuth() {
-  return !!localStorage.getItem('access_token')
-}
+import { useAuthStore } from './store/auth'
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  return useAuth() ? <>{children}</> : <Navigate to="/login" replace />
+  const { accessToken, mandantId } = useAuthStore()
+  if (!accessToken) return <Navigate to="/login" replace />
+  if (!mandantId) return <Navigate to="/login" replace />
+  return <>{children}</>
 }
 
 export default function App() {
@@ -23,6 +28,11 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route index element={<DashboardPage />} />
+                <Route path="bookings/*" element={<BookingsPage />} />
+                <Route path="accounts" element={<AccountsPage />} />
+                <Route path="kontoauszug" element={<KontoauszugPage />} />
+                <Route path="eur" element={<EURPage />} />
+                <Route path="datev" element={<DatevPage />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

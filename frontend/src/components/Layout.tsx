@@ -1,23 +1,75 @@
 import type { ReactNode } from 'react'
-import { Box, AppBar, Toolbar, Typography, Button } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import {
+  Box, AppBar, Toolbar, Typography, Drawer, List,
+  ListItemButton, ListItemIcon, ListItemText, Divider, IconButton,
+} from '@mui/material'
+import BookIcon from '@mui/icons-material/MenuBook'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import BarChartIcon from '@mui/icons-material/BarChart'
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
+import LogoutIcon from '@mui/icons-material/Logout'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuthStore } from '../store/auth'
+
+const DRAWER_WIDTH = 220
+
+const NAV_ITEMS = [
+  { label: 'Buchungsjournal', path: '/bookings', icon: <BookIcon /> },
+  { label: 'Kontenplan', path: '/accounts', icon: <AccountBalanceIcon /> },
+  { label: 'Kontoauszug', path: '/kontoauszug', icon: <ReceiptLongIcon /> },
+  { label: 'EÜR', path: '/eur', icon: <BarChartIcon /> },
+  { label: 'DATEV Export', path: '/datev', icon: <FileDownloadIcon /> },
+]
 
 export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const logout = useAuthStore((s) => s.logout)
+
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    logout()
     navigate('/login')
   }
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static">
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>WebBuchhaltung</Typography>
-          <Button color="inherit" onClick={handleLogout}>Abmelden</Button>
+          <IconButton color="inherit" onClick={handleLogout} title="Abmelden">
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
-      <Box component="main" sx={{ p: 3, flexGrow: 1 }}>{children}</Box>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: DRAWER_WIDTH,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' },
+        }}
+      >
+        <Toolbar />
+        <List>
+          {NAV_ITEMS.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={location.pathname.startsWith(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+      </Drawer>
+
+      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, ml: `${DRAWER_WIDTH}px` }}>
+        {children}
+      </Box>
     </Box>
   )
 }
