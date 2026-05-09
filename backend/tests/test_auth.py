@@ -43,6 +43,7 @@ async def test_login_wrong_password(client, db_session: AsyncSession) -> None:
 async def test_me_requires_auth(client) -> None:
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHORIZED"
 
 
 async def test_me_returns_current_user(client, db_session: AsyncSession) -> None:

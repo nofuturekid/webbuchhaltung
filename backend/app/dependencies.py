@@ -10,13 +10,15 @@ from app.errors import UnauthorizedError
 from app.models.user import User
 from app.services.auth import decode_token
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     session: AsyncSession = Depends(get_db),
 ) -> User:
+    if credentials is None:
+        raise UnauthorizedError("Not authenticated.")
     payload = decode_token(credentials.credentials)
     if payload.get("type") != "access":
         raise UnauthorizedError("Invalid token type.")
@@ -30,8 +32,10 @@ async def get_current_user(
 
 
 def get_mandant_id(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> uuid.UUID:
+    if credentials is None:
+        raise UnauthorizedError("Not authenticated.")
     payload = decode_token(credentials.credentials)
     mandant_id = payload.get("mandant_id")
     if not mandant_id:
