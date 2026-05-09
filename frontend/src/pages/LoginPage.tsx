@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Button, TextField, Typography, Paper } from '@mui/material'
 import axios from 'axios'
 
+interface LoginResponse {
+  access_token: string
+  refresh_token: string
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -13,7 +18,7 @@ export default function LoginPage() {
   async function handleLogin(e: FormEvent) {
     e.preventDefault()
     try {
-      const { data } = await axios.post('/api/v1/auth/login', { email, password })
+      const { data } = await axios.post<LoginResponse>('/api/v1/auth/login', { email, password })
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
       navigate('/')
