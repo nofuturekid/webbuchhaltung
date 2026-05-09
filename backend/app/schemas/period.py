@@ -1,7 +1,6 @@
 import uuid
-from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 
 class PeriodResponse(BaseModel):
@@ -12,4 +11,4 @@ class PeriodResponse(BaseModel):
     year: int
     month: int
     status: str
-    locked_at: datetime | None
+    locked_at: AwareDatetime | None

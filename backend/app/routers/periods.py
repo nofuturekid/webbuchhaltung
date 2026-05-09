@@ -14,6 +14,7 @@ router = APIRouter(prefix="/periods", tags=["periods"])
 
 @router.get("", response_model=list[PeriodResponse])
 async def list_(
+    _current_user: User = Depends(get_current_user),
     mandant_id: uuid.UUID = Depends(get_mandant_id),
     session: AsyncSession = Depends(get_db),
 ) -> list[PeriodResponse]:

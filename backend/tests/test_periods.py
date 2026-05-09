@@ -100,3 +100,20 @@ async def test_cannot_post_booking_into_locked_period(client, db_session):
     )
     assert post_resp.status_code == 422
     assert post_resp.json()["error"]["code"] == "PERIOD_LOCKED"
+
+
+async def test_cannot_lock_already_locked_period(client, db_session):
+    headers, _, mandant = await _setup(db_session)
+    period = await get_or_create_period(db_session, mandant.id, 2025, 1)
+    await db_session.flush()
+    await client.post(f"/api/v1/periods/{period.id}/lock", headers=headers)
+    resp = await client.post(f"/api/v1/periods/{period.id}/lock", headers=headers)
+    assert resp.status_code == 409
+
+
+async def test_cannot_archive_open_period(client, db_session):
+    headers, _, mandant = await _setup(db_session)
+    period = await get_or_create_period(db_session, mandant.id, 2024, 11)
+    await db_session.flush()
+    resp = await client.post(f"/api/v1/periods/{period.id}/archive", headers=headers)
+    assert resp.status_code == 409
