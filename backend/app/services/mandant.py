@@ -7,6 +7,7 @@ from app.errors import NotFoundError
 from app.models.mandant import Mandant
 from app.models.user import UserMandant
 from app.schemas.mandant import MandantCreate, MandantUpdate
+from app.services.account import seed_skr_for_mandant
 from app.services.auth import create_access_token
 
 
@@ -42,6 +43,7 @@ async def create_mandant(
     link = UserMandant(user_id=user_id, mandant_id=mandant.id, role="admin")
     session.add(link)
     await session.flush()
+    await seed_skr_for_mandant(session, mandant.id, data.skr_variant)
     await session.refresh(mandant)
     return mandant
 
