@@ -84,7 +84,7 @@ async def update_booking(
     data: BookingUpdate,
 ) -> Booking:
     booking = await get_booking(session, booking_id, mandant_id)
-    if booking.status == "posted":
+    if booking.status != "draft":
         raise BookingAlreadyPostedError()
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(booking, field, value)

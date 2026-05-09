@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,8 +27,8 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 @router.get("", response_model=BookingListResponse)
 async def list_(
-    booking_type: str | None = Query(None),
-    status: str | None = Query(None),
+    booking_type: Literal["bank", "entry"] | None = Query(None),
+    status: Literal["draft", "posted", "reversed"] | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     account_id: uuid.UUID | None = Query(None),

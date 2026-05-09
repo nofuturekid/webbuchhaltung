@@ -48,6 +48,20 @@ class BookingUpdate(BaseModel):
     tax_amount_cents: int | None = None
     tax_key_code: int | None = None
 
+    @field_validator("amount_cents")
+    @classmethod
+    def amount_must_be_positive(cls, v: int | None) -> int | None:
+        if v is not None and v <= 0:
+            raise ValueError("amount_cents must be positive")
+        return v
+
+    @field_validator("notes")
+    @classmethod
+    def notes_max_60(cls, v: str | None) -> str | None:
+        if v and len(v) > 60:
+            raise ValueError("notes must be ≤60 characters (DATEV Buchungstext limit)")
+        return v
+
 
 class BookingResponse(BaseModel):
     model_config = {"from_attributes": True}
