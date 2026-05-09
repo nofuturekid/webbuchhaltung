@@ -1,7 +1,7 @@
 # Project Status
 
 **Last updated:** 2026-05-09
-**Phase:** Phase 1 design complete — ready for implementation planning
+**Phase:** Phase 1 implementation complete — PR open for review
 
 ## Done
 - Design spec: docs/superpowers/specs/2026-05-08-claude-agent-team-setup-design.md
@@ -14,13 +14,17 @@
 - Pre-commit framework: .pre-commit-config.yaml
 - CHANGELOG configuration: cliff.toml
 - Phase 1 design spec: docs/superpowers/specs/2026-05-09-phase1-accounting-core-design.md
+- Phase 1 implementation plan: docs/superpowers/plans/2026-05-09-phase1-accounting-core.md
+- Phase 1 backend: JWT auth, Mandant CRUD, SKR03/04 chart of accounts, booking lifecycle (draft/post/reverse), accounting periods (lock/archive), EÜR + Kontoauszug reports, DATEV EXTF v700 export
+- Phase 1 frontend: React 18 skeleton — MUI v6, TanStack Query v5, Vite, TypeScript strict, login page, nginx Docker image
+- PR #1 open: https://github.com/nofuturekid/webbuchhaltung/pull/1
 
 ## In Progress
 - Nothing
 
 ## Open
-- Phase 1 implementation plan (invoke writing-plans skill)
-- Phase 1 implementation (accounting core MVP)
+- Merge PR #1 (feature/backend-phase1 → main)
+- Phase 2: Full accounting UI (invoice CRUD, journal view, account statement UI, EÜR report UI)
 
 ## Key Decisions (this session)
 - SQLite dropped — PostgreSQL + MariaDB only; Docker Compose = minimum deployment
@@ -53,4 +57,7 @@
 
 
 
-<!-- session-end: 2026-05-09 10:29 -->
+
+
+
+<!-- session-end: 2026-05-09 13:38 -->
