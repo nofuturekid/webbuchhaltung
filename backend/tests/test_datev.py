@@ -140,3 +140,28 @@ async def test_export_only_posted_entry_bookings(client, db_session):
         if line and not line.startswith('"EXTF') and not line.startswith("Umsatz")
     ]
     assert len(lines) == 1
+
+
+async def test_datev_mandant_isolation(client, db_session):
+    headers1, mandant1, acc1, acc2 = await _setup_posted_booking(db_session, client)
+    # Second mandant with no bookings
+    user2 = User(email=f"iso{uuid.uuid4()}@x.com", hashed_password=hash_password("pw"))
+    db_session.add(user2)
+    mandant2 = Mandant(name="ISO DATEV GmbH", skr_variant="skr03")
+    db_session.add(mandant2)
+    await db_session.flush()
+    db_session.add(UserMandant(user_id=user2.id, mandant_id=mandant2.id, role="admin"))
+    await db_session.flush()
+    headers2 = {"Authorization": f"Bearer {create_access_token(user2.id, mandant2.id)}"}
+    resp = await client.post(
+        "/api/v1/datev/export",
+        json={"date_from": "2026-01-01", "date_to": "2026-01-31"},
+        headers=headers2,
+    )
+    assert resp.status_code == 200
+    lines = [
+        line
+        for line in resp.content.decode("cp1252").splitlines()
+        if line and not line.startswith('"EXTF') and not line.startswith("Umsatz")
+    ]
+    assert len(lines) == 0

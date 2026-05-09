@@ -83,7 +83,7 @@ async def generate_datev_export(
 
     header1 = (
         f'"EXTF";700;21;"Buchungsstapel";5;'
-        f'{now.strftime("%Y%m%d%H%M%S%f")[:20]};;'
+        f'{now.strftime("%Y%m%d%H%M%S")}{now.microsecond // 1000:03d};;'
         f'"{beraternr}";"{mandantennr}";'
         f'{mandant.fiscal_year_start};12;'
         f'"{wj_anfang}";"{wj_ende}";'
@@ -110,7 +110,7 @@ async def generate_datev_export(
             b.currency,
             "",
             "",
-            "",
+            " ",
             coa_number,
             counter_number,
             _tax_key_to_bu(b.tax_key_code),
