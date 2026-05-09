@@ -120,32 +120,21 @@ async def get_next_entry_number(session: AsyncSession, mandant_id: uuid.UUID) ->
         )
         return int(result.scalar_one())
     elif dialect_name in ("mysql", "mariadb"):
+        # LAST_INSERT_ID(expr) sets the connection-scoped value atomically
         await session.execute(
             text(
-                "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 1) "
-                "ON DUPLICATE KEY UPDATE next_value = next_value + 1"
+                "INSERT INTO booking_sequences (mandant_id, next_value) "
+                "VALUES (:id, LAST_INSERT_ID(1)) "
+                "ON DUPLICATE KEY UPDATE next_value = LAST_INSERT_ID(next_value + 1)"
             ),
             {"id": str(mandant_id)},
         )
-        result = await session.execute(
-            text("SELECT next_value FROM booking_sequences WHERE mandant_id = :id"),
-            {"id": str(mandant_id)},
-        )
+        result = await session.execute(text("SELECT LAST_INSERT_ID()"))
         return int(result.scalar_one())
     else:
-        # SQLite (test DB)
-        await session.execute(
-            text(
-                "INSERT INTO booking_sequences (mandant_id, next_value) VALUES (:id, 1) "
-                "ON CONFLICT (mandant_id) DO UPDATE SET next_value = next_value + 1"
-            ),
-            {"id": str(mandant_id)},
+        raise NotImplementedError(
+            f"Unsupported dialect for entry number sequencing: {dialect_name}"
         )
-        result = await session.execute(
-            text("SELECT next_value FROM booking_sequences WHERE mandant_id = :id"),
-            {"id": str(mandant_id)},
-        )
-        return int(result.scalar_one())
 
 
 async def post_booking(
@@ -174,6 +163,7 @@ async def post_booking(
         record_id=booking.id,
         action="update",
         change_summary={
+            "transition": "draft→posted",
             "status": ["draft", "posted"],
             "entry_number": [None, entry_number],
         },

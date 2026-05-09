@@ -337,3 +337,31 @@ async def test_cannot_post_already_posted_booking(client, db_session):
     resp2 = await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers)
     assert resp2.status_code == 422
     assert resp2.json()["error"]["code"] == "BOOKING_ALREADY_POSTED"
+
+
+async def test_audit_log_mandant_isolation(client, db_session):
+    headers1, user1, mandant1, acc1, acc2 = await _setup(db_session)
+    user2 = User(email=f"aud{uuid.uuid4()}@x.com", hashed_password=hash_password("pw"))
+    db_session.add(user2)
+    mandant2 = Mandant(name="AuditIso GmbH", skr_variant="skr03")
+    db_session.add(mandant2)
+    await db_session.flush()
+    db_session.add(UserMandant(user_id=user2.id, mandant_id=mandant2.id, role="admin"))
+    await db_session.flush()
+    headers2 = {"Authorization": f"Bearer {create_access_token(user2.id, mandant2.id)}"}
+    resp = await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 10000,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers1,
+    )
+    booking_id = resp.json()["id"]
+    await client.post(f"/api/v1/bookings/{booking_id}/post", headers=headers1)
+    log_resp = await client.get(
+        f"/api/v1/bookings/{booking_id}/audit-log", headers=headers2
+    )
+    assert log_resp.status_code == 404

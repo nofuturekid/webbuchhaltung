@@ -29,11 +29,15 @@ async def write_audit(
 
 
 async def list_booking_audit_log(
-    session: AsyncSession, booking_id: uuid.UUID
+    session: AsyncSession, booking_id: uuid.UUID, mandant_id: uuid.UUID
 ) -> list[dict[str, object]]:
     result = await session.execute(
         select(AuditLog)
-        .where(AuditLog.record_id == booking_id, AuditLog.table_name == "bookings")
+        .where(
+            AuditLog.record_id == booking_id,
+            AuditLog.table_name == "bookings",
+            AuditLog.mandant_id == mandant_id,
+        )
         .order_by(AuditLog.changed_at)
     )
     return [

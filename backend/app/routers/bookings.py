@@ -78,9 +78,8 @@ async def audit_log(
     mandant_id: uuid.UUID = Depends(get_mandant_id),
     session: AsyncSession = Depends(get_db),
 ) -> list[dict[str, object]]:
-    # Verify booking exists and belongs to mandant
     await get_booking(session, booking_id, mandant_id)
-    return await list_booking_audit_log(session, booking_id)
+    return await list_booking_audit_log(session, booking_id, mandant_id)
 
 
 @router.get("/{booking_id}", response_model=BookingResponse)
