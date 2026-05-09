@@ -116,6 +116,14 @@ async def list_tax_keys(session: AsyncSession) -> list[TaxKey]:
     return list(result.scalars().all())
 
 
+async def get_tax_key(session: AsyncSession, code: int) -> TaxKey:
+    result = await session.execute(select(TaxKey).where(TaxKey.code == code))
+    tk = result.scalar_one_or_none()
+    if not tk:
+        raise NotFoundError(f"TaxKey {code} not found.")
+    return tk
+
+
 async def get_account_balance(
     session: AsyncSession,
     account_id: uuid.UUID,

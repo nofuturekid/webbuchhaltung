@@ -46,5 +46,19 @@ def upgrade() -> None:
         )
 
 
+_SEEDED_CODES = [0, 2, 3, 9, 10, 40, 41, 44, 48]
+
+
 def downgrade() -> None:
-    op.execute(sa.text("DELETE FROM tax_keys"))
+    conn = op.get_bind()
+    if conn.dialect.name == "postgresql":
+        conn.execute(
+            sa.text("DELETE FROM tax_keys WHERE code = ANY(:codes)"),
+            {"codes": _SEEDED_CODES},
+        )
+    else:
+        for code in _SEEDED_CODES:
+            conn.execute(
+                sa.text("DELETE FROM tax_keys WHERE code = :code"),
+                {"code": code},
+            )
