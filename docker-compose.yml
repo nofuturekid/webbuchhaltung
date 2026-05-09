@@ -31,7 +31,7 @@ services:
     # Development-only volume mount for hot-reload. Remove for production builds.
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
 
   frontend:
     build: ./frontend
