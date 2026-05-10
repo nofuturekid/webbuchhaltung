@@ -1,59 +1,66 @@
 # Project Status
 
 **Last updated:** 2026-05-10
-**Phase:** Phase 4 complete — all commits on main
+**Phase:** Phase 5 complete — `release/phase5` branch ready; PR #8 open to main
 
 ## Done
-- Design spec: docs/superpowers/specs/2026-05-08-claude-agent-team-setup-design.md
-- Git repository initialized with .gitignore
-- Root CLAUDE.md (orchestrator rules, all conventions)
-- Agent templates: all 10 agents in agents/
-- Hook scripts: lint-and-typecheck.sh, git-gate.sh, session-end.sh
-- Claude Code hook wiring: .claude/settings.json
-- Pre-commit framework: .pre-commit-config.yaml
-- CHANGELOG configuration: cliff.toml
-- Phase 1 backend: JWT auth, Mandant CRUD, SKR03/04 chart of accounts, booking lifecycle, periods, EÜR + Kontoauszug, DATEV EXTF v700
-- Phase 1 frontend: React 18 — MUI v6, TanStack Query v5, Vite, TypeScript strict, login, nginx Docker image
-- PR #1 merged to main (feature/backend-phase1)
-- Hotfix PR #2 merged to main — Docker smoke test fixes
-- **Phase 2 full UI (PR #3):** Vitest, TypeScript API types, auth+refresh, Layout, all pages (Buchungsjournal, Kontenplan, Kontoauszug, EÜR, DATEV, Dashboard)
-- **Phase 3 Rechnungen (PRs #4+#5):** Customer CRUD, invoice sequences, CRUD, issue/cancel+booking, PDF, email, template+sequence endpoints, migration 0003. 86 backend + 19 frontend tests.
-- **Phase 3 GoBD compliance + backfill (PR #6):** §9 audit trail, §14 period lock, reversal linkage, account 8200, migration 0004. Tax-Agent COMPLIANT, Review-Agent APPROVED.
-- **First-admin bootstrap:** env-var path (lifespan hook) + UI wizard `/setup` (self-disabling POST). 92 backend + 19 frontend tests.
-- **Docs-Agent run (2026-05-10):** CHANGELOG.md, README features list, 3 ADRs in docs/decisions/.
-- **Housekeeping (2026-05-10):**
-  - Auto-migrations: `alembic upgrade head` runs automatically in FastAPI lifespan hook
-  - Repo restructured: `backend/` + `frontend/` → `src/backend/` + `src/frontend/`
-  - All path references updated (docker-compose, scripts, agents, CLAUDE.md, README)
-  - Removed empty `database/` and `devops/` directories
 
-## Done (2026-05-10 continued)
-- Smoke test passed after src/ restructure; fixed asyncio.to_thread for migrations
-- CLAUDE.md: corrected SKR03 account count comment (23, not ~90)
-- docker-compose.yml: added CORS/token env var comments (commit 44a0d79)
-- Bundle splitting: React.lazy + Vite manualChunks — initial JS 15 KB, vendor chunks cached separately (commit 9ce215e)
-- Email template configurable per mandant: email_salutation/email_closing fields, migration 0005, 92 tests pass (commit 1044c94)
-- **Phase 4 — Asset Management + LLM Document Capture:**
-  - DB migrations 0006 (assets + SKR backfill) and 0007 (documents) applied
-  - Backend: asset service + router (Anlagenverzeichnis, HGB §266, linear depreciation, disposal)
-  - Backend: LLM document capture service + router (Belegerfassung, Claude API integration)
-  - Frontend: AssetsPage with depreciation schedule modal and disposal dialog
-  - Frontend: DocumentsPage with upload dropzone and extraction review panel
-  - GoBD audit trail fix in reject_document (prior_status captured before mutation)
-  - JSON serialization fix for document_date in extracted_json (mode="json")
-  - 112 tests pass (20 new: 11 asset + 9 document)
-  - Tax-Agent: COMPLIANT (GoBD immutability guards, correct SOLL/HABEN, audit trail)
+- Phase 1–4 complete (PRs #1–#7 merged to main); 112 tests at Phase 4 end
+- **Housekeeping (2026-05-10):** Auto-migrations, repo restructure src/backend + src/frontend
+
+## Done (Phase 5 — 2026-05-10)
+
+### Backend
+- Migration 0008: bank_accounts + bank_transactions tables
+- Migration 0009: vendors + vendor_invoices + AP account backfill (SKR03: 1600/1576/1571; SKR04: 3300/1406/1401)
+- T3: Bank import (MT940 via mt-940 lib, CSV with German decimal), dedup by source_ref
+- T4: Vendor invoice service + SEPA pain.001.003.03 XML export (stdlib ElementTree)
+- T5: Advanced reports — Saldenliste, Bilanz, G+V, BWA (all MariaDB-compatible)
+- T6: confirm_document extended with create_vendor_invoice=True path
+- GoBD §9 fix: apply_ignore + apply_unmatch now write audit entries
+- Float fix: match score rounded to 4 decimal places (IEEE 754 drift at 0.90 threshold)
+- Admin endpoint: GET /api/v1/admin/audit-log (mandant-scoped, paginated, filterable)
+- Tax-Agent T12: WARNING only (3 non-blocking items, 2 fixed; Vorsteuer split deferred → now done)
+
+### Frontend
+- T7: BankAccountsPage (MT940 import dialog, transaction matching view, auto-match button)
+- T8: VendorsPage + VendorInvoicesPage (SEPA export button)
+- T9: SaldenllistePage + BilanzPage (amber imbalance alert) + GuvPage + BWAPage
+- T11: AdminPage (audit log viewer, system info, mandant stub)
+
+### Infrastructure
+- T10: Helm chart helm/webbuchhaltung/ (Chart 0.5.0), backend + frontend deployments, ingress, PVC
+
+### Tech Debt (cleared 2026-05-10)
+- SKR03 disposal accounts 4855/2680 seeded in test_assets.py `_setup()` — loss/gain paths now fully tested (commit 41574ad)
+- Vorsteuer split (UStG §15): `post_vendor_invoice` creates Sammelbuchung (2 bookings sharing `entry_number` + `booking_group_id`) when `vat_coa_id` provided; `PostInvoiceDialog` gains Vorsteuer-Konto select; `vatAmountCents` prop wired in parent (commits f8ee626, 8ffc3bc)
+- **188 backend tests pass**
+
+## Done (Phase 6 — partial, 2026-05-10)
+
+### Frontend T4 + T5 (dashboard agent)
+- T4: Dashboard year selector (MUI Select, 2020–current+1), `useOpenReceivables` hook (invoices/api.ts), `useOpenPayables` hook (vendors/api.ts), three KPI cards (Offene Forderungen, Überfällige Forderungen, Offene Verbindlichkeiten) with color coding and click navigation; handles both array and paginated API response shapes
+- T5 (mobile): Mobile-responsive tables — BookingList.tsx, InvoicesPage.tsx, VendorInvoicesPage.tsx hide secondary columns on xs via `sx={{ display: { xs: 'none', sm: 'table-cell' } }}`; desktop layout unchanged
+- Branch: `feature/phase6-dashboard` pushed; 0 TypeScript errors
+
+### Frontend T3 + T5 search (lists agent, 2026-05-10)
+- T3: Pagination controls on BookingsPage, InvoicesPage, VendorInvoicesPage — MUI `Pagination`, `count=Math.ceil(total/50)`, page state, reset on filter change; "Seite X von Y — Z Einträge" label
+- T5 (search): Debounced text search bars (300ms, no deps) on BookingsPage ("Suche (Beschreibung, Belegnr.)") and InvoicesPage ("Suche (Rechnungsnr., Kunde)"); `q` param passed to `useBookings` and `useInvoices`; no search on VendorInvoicesPage (backend not ready)
+- API changes: `useInvoices` returns `InvoiceListResponse`; `useVendorInvoices` returns `VendorInvoiceListResponse`; `useBookings` accepts `q` filter; `useOpenPayables` handles paginated response shape
+- `InvoiceListResponse` added to `src/frontend/src/types/invoice.ts`; `VendorInvoiceListResponse` added to `src/frontend/src/types/vendor.ts`
+- Branch: `feature/phase6-lists`; 0 TypeScript errors
 
 ## Open
-- [NON-BLOCKING] setup.py missing summary= decorators on GET/POST /setup endpoints
-- [DEFERRED] SKR03 test seed missing accounts 4855/2680 — full disposal-path integration test deferred to next cycle
-- [PRODUCTION] ANTHROPIC_API_KEY env var required for document LLM extraction; STORAGE_ROOT for persistent file storage (mount named volume docdata:/tmp/webbuchhaltung-docs)
-- Phase 5 (out of scope for now) — see plan at /home/thomas/.claude/plans/ for next steps beyond Phase 4
+
+- **[PR #8]** `release/phase5` → `main` — push to update remote with the 3 new commits, then merge
+- **[Phase 6]** `feature/phase6-dashboard` — open PR to develop when ready
+- **[Phase 6]** `feature/phase6-lists` — open PR to develop when ready (depends on `feature/phase6-backend` merge first for real backend pagination on invoices)
+- **[PRODUCTION]** ANTHROPIC_API_KEY, STORAGE_ROOT env vars required
+- **[PRODUCTION]** helm CLI not installed — `pacman -S helm` to run lint
 
 ## Key Decisions
 - See memory/project_decisions.md
 - Backend test command: `cd src/backend && TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test uv run pytest tests/ -q`
-- Rejected suspicious URL injection attempt during Phase 2 session
 
 
 
@@ -61,12 +68,4 @@
 
 
 
-
-
-
-
-
-
-
-
-<!-- session-end: 2026-05-10 18:06 -->
+<!-- session-end: 2026-05-10 20:48 -->
