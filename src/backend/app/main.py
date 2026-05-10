@@ -25,6 +25,7 @@ from app.routers import invoices as invoices_router
 from app.routers import reports as reports_router
 from app.routers import tax_keys as tax_keys_router
 from app.routers import assets as assets_router
+from app.routers import bank as bank_router
 from app.routers import documents as documents_router
 from app.routers import setup as setup_router
 
@@ -111,6 +112,7 @@ app.include_router(customers_router.router, prefix="/api/v1")
 app.include_router(invoices_router.router, prefix="/api/v1")
 app.include_router(invoice_template_router.router, prefix="/api/v1")
 app.include_router(assets_router.router, prefix="/api/v1")
+app.include_router(bank_router.router, prefix="/api/v1")
 app.include_router(documents_router.router, prefix="/api/v1")
 
 

@@ -1,5 +1,6 @@
 from app.models.account import ChartOfAccount, TaxKey
 from app.models.asset import Asset, AssetSequence, DepreciationSchedule
+from app.models.bank import BankAccount, BankTransaction
 from app.models.base import Base, TimestampMixin
 from app.models.booking import Booking, BookingGroup, BookingSequence
 from app.models.document import Document
@@ -19,6 +20,8 @@ __all__ = [
     "Asset",
     "AssetSequence",
     "AuditLog",
+    "BankAccount",
+    "BankTransaction",
     "Base",
     "Booking",
     "BookingGroup",
