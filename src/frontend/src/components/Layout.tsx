@@ -7,6 +7,7 @@ import BookIcon from '@mui/icons-material/MenuBook'
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
 import DescriptionIcon from '@mui/icons-material/Description'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
@@ -35,6 +36,10 @@ const NAV_ITEMS_RECHNUNGEN = [
 const NAV_ITEMS_ANLAGEN = [
   { label: 'Anlagenverzeichnis', path: '/assets', icon: <BusinessCenterIcon /> },
   { label: 'Belege', path: '/documents', icon: <DescriptionIcon /> },
+]
+
+const NAV_ITEMS_BANKING = [
+  { label: 'Bankkonten', path: '/bank', icon: <AccountBalanceWalletIcon /> },
 ]
 
 const NAV_ITEMS_SETTINGS = [
@@ -103,6 +108,19 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Divider />
         <List>
           {NAV_ITEMS_ANLAGEN.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_BANKING.map((item) => (
             <ListItemButton
               key={item.path}
               selected={isSelected(item.path)}
