@@ -210,6 +210,7 @@ async def reject_document(
 ) -> Document:
     """Mark a document as rejected."""
     doc = await _get_doc(session, doc_id, mandant_id)
+    prior_status = doc.status
     doc.status = "rejected"
     doc.updated_at = datetime.now(timezone.utc)
     await session.flush()
@@ -218,7 +219,7 @@ async def reject_document(
         table_name="documents",
         record_id=doc.id,
         action="update",
-        change_summary={"status": [doc.status, "rejected"]},
+        change_summary={"status": [prior_status, "rejected"]},
         mandant_id=mandant_id,
         user_id=user_id,
     )
