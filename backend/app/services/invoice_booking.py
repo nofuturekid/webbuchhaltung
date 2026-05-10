@@ -5,11 +5,13 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.errors import AccountLookupError
+from app.errors import AccountLookupError, PeriodLockedError
 from app.models.account import ChartOfAccount
 from app.models.booking import Booking
 from app.models.invoice import Invoice, InvoiceLineItem
+from app.services.audit import write_audit
 from app.services.booking import get_next_entry_number
+from app.services.period import get_or_create_period
 
 
 # SKR03: Debit = Forderungen aus LuL (1400), Credit = Umsatzerlöse
@@ -71,6 +73,16 @@ async def create_issue_bookings(
         gross = (item.net_total_cents or 0) + (item.vat_amount_cents or 0)
         buckets[key] = buckets.get(key, 0) + gross
 
+    # Fix 2 (GoBD §14): Verify the target period is not locked or archived before
+    # posting any booking.  Use invoice.issue_date as the authoritative period
+    # reference — identical to how post_booking() guards direct postings.
+    booking_date = invoice.issue_date or date.today()
+    period = await get_or_create_period(
+        session, mandant_id, booking_date.year, booking_date.month
+    )
+    if period.status in ("locked", "archived"):
+        raise PeriodLockedError()
+
     first_booking: Booking | None = None
     for vat_key, gross_cents in buckets.items():
         if gross_cents == 0:
@@ -82,7 +94,7 @@ async def create_issue_bookings(
         booking = Booking(
             mandant_id=mandant_id,
             booking_type="entry",
-            date_booking=invoice.issue_date or date.today(),
+            date_booking=booking_date,
             amount_cents=gross_cents,
             currency=invoice.currency,
             document_number=invoice.invoice_number[:12],
@@ -100,6 +112,22 @@ async def create_issue_bookings(
         entry_number = await get_next_entry_number(session, mandant_id)
         booking.status = "posted"
         booking.entry_number = entry_number
+
+        # Fix 1 (GoBD §9): Record every draft→posted transition in the audit log,
+        # matching the pattern used by post_booking() in booking.py.
+        await write_audit(
+            session,
+            table_name="bookings",
+            record_id=booking.id,
+            action="update",
+            change_summary={
+                "transition": "draft→posted",
+                "status": ["draft", "posted"],
+                "entry_number": [None, entry_number],
+            },
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
 
         await session.flush()
         if first_booking is None:
