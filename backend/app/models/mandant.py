@@ -1,6 +1,14 @@
 import uuid
 
-from sqlalchemy import Boolean, CheckConstraint, Enum as SAEnum, Integer, String, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Enum as SAEnum,
+    Integer,
+    SmallInteger,
+    String,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -27,3 +35,11 @@ class Mandant(Base, TimestampMixin):
         SAEnum("skr03", "skr04", "skr07", name="skr_variant_enum"), nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    iban: Mapped[str | None] = mapped_column(String(34))
+    bic: Mapped[str | None] = mapped_column(String(11))
+    smtp_host: Mapped[str | None] = mapped_column(String(253))
+    smtp_port: Mapped[int] = mapped_column(SmallInteger, default=587, nullable=False)
+    smtp_user: Mapped[str | None] = mapped_column(String(254))
+    smtp_password: Mapped[str | None] = mapped_column(String(500))
+    smtp_from: Mapped[str | None] = mapped_column(String(254))
+    smtp_from_name: Mapped[str | None] = mapped_column(String(200))

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: {{ template.font_family }};
+    font-size: 11pt;
+    color: #222;
+    padding: 2cm 2cm 2cm 2.5cm;
+  }
+  .header { display: flex; justify-content: space-between; margin-bottom: 1.5cm; }
+  .company-name { font-size: 16pt; font-weight: bold; color: {{ template.primary_color }}; }
+  .company-address { font-size: 9pt; color: #555; margin-top: 4px; }
+  .invoice-title { text-align: right; }
+  .invoice-title h1 { font-size: 20pt; font-weight: bold; color: {{ template.primary_color }}; }
+  .invoice-title .meta { font-size: 10pt; color: #444; margin-top: 6px; }
+  hr { border: none; border-top: 2px solid {{ template.primary_color }}; margin: 0.5cm 0; }
+  .recipient { margin: 0.8cm 0 1cm 0; font-size: 10.5pt; line-height: 1.5; }
+  .header-text { font-size: 10pt; color: #555; margin-bottom: 0.5cm; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 0.8cm; font-size: 10pt; }
+  thead th {
+    background: {{ template.primary_color }};
+    color: white;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: bold;
+  }
+  thead th.num { text-align: right; }
+  tbody tr:nth-child(even) { background: #f9f9f9; }
+  tbody td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .totals { margin-left: auto; width: 50%; font-size: 10.5pt; }
+  .totals table { width: 100%; }
+  .totals td { padding: 3px 6px; }
+  .totals td.label { text-align: right; color: #555; }
+  .totals td.amount { text-align: right; font-variant-numeric: tabular-nums; }
+  .totals tr.gross td { font-weight: bold; font-size: 12pt; border-top: 2px solid {{ template.primary_color }}; }
+  .footer { margin-top: 1.5cm; font-size: 9pt; color: #666; border-top: 1px solid #ccc; padding-top: 0.4cm; }
+  .payment { margin-top: 0.8cm; font-size: 10pt; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="company-name">{{ mandant.name }}</div>
+    <div class="company-address">
+      {% if mandant.iban %}IBAN: {{ mandant.iban }}{% if mandant.bic %} &middot; BIC: {{ mandant.bic }}{% endif %}<br>{% endif %}
+      {% if mandant.steuernummer %}Steuernummer: {{ mandant.steuernummer }}{% endif %}
+      {% if mandant.ust_id %} &middot; USt-IdNr.: {{ mandant.ust_id }}{% endif %}
+    </div>
+  </div>
+  <div class="invoice-title">
+    <h1>RECHNUNG</h1>
+    <div class="meta">
+      <strong>Nr.:</strong> {{ invoice.invoice_number }}<br>
+      <strong>Datum:</strong> {{ invoice.issue_date }}<br>
+      {% if invoice.due_date %}<strong>F&auml;llig am:</strong> {{ invoice.due_date }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div class="recipient">
+  <strong>{{ customer.name }}</strong><br>
+  {% if customer.street %}{{ customer.street }}<br>{% endif %}
+  {% if customer.postal_code or customer.city %}{{ customer.postal_code }} {{ customer.city }}<br>{% endif %}
+  {% if customer.country and customer.country != 'DE' %}{{ customer.country }}<br>{% endif %}
+  {% if customer.vat_id %}USt-IdNr.: {{ customer.vat_id }}{% endif %}
+</div>
+
+{% if template.header_text %}
+<div class="header-text">{{ template.header_text }}</div>
+{% endif %}
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:4%">Pos.</th>
+      <th>Beschreibung</th>
+      <th class="num" style="width:8%">Menge</th>
+      <th style="width:8%">Einheit</th>
+      <th class="num" style="width:12%">EP netto</th>
+      <th class="num" style="width:8%">MwSt</th>
+      <th class="num" style="width:12%">Betrag</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in line_items %}
+    <tr>
+      <td>{{ item.position }}</td>
+      <td>{{ item.description }}</td>
+      <td class="num">{{ "%.3f"|format(item.quantity|float) }}</td>
+      <td>{{ item.unit or '' }}</td>
+      <td class="num">{{ fmt(item.unit_price_cents) }}</td>
+      <td class="num">{{ (item.vat_rate * 100)|int }} %</td>
+      <td class="num">{{ fmt((item.net_total_cents or 0) + (item.vat_amount_cents or 0)) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <table>
+    <tr>
+      <td class="label">Nettobetrag:</td>
+      <td class="amount">{{ fmt(invoice.net_total_cents) }}</td>
+    </tr>
+    {% for bucket in vat_buckets %}
+    <tr>
+      <td class="label">MwSt. {{ (bucket.rate * 100)|int }} %:</td>
+      <td class="amount">{{ fmt(bucket.vat) }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="gross">
+      <td class="label">Gesamtbetrag:</td>
+      <td class="amount">{{ fmt(invoice.gross_total_cents) }}</td>
+    </tr>
+  </table>
+</div>
+
+{% if invoice.notes %}
+<div class="payment">{{ invoice.notes }}</div>
+{% endif %}
+
+<div class="footer">
+  {% if mandant.iban %}
+  <strong>Bankverbindung:</strong> {{ mandant.name }} &middot; IBAN: {{ mandant.iban }}{% if mandant.bic %} &middot; BIC: {{ mandant.bic }}{% endif %}<br>
+  {% endif %}
+  {{ template.payment_terms_text }}<br>
+  {% if template.footer_text %}{{ template.footer_text }}{% endif %}
+</div>
+
+</body>
+</html>
