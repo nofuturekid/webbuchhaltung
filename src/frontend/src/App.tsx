@@ -17,6 +17,7 @@ const InvoicesPage = lazy(() => import('./pages/InvoicesPage'))
 const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetailPage'))
 const CustomersPage = lazy(() => import('./pages/CustomersPage'))
 const MandantSettingsPage = lazy(() => import('./pages/MandantSettingsPage'))
+const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { accessToken, mandantId } = useAuthStore()
@@ -52,6 +53,7 @@ export default function App() {
                   <Route path="invoices" element={<InvoicesPage />} />
                   <Route path="invoices/:id" element={<InvoiceDetailPage />} />
                   <Route path="customers" element={<CustomersPage />} />
+                  <Route path="assets" element={<AssetsPage />} />
                   <Route path="settings/mandant" element={<MandantSettingsPage />} />
                 </Routes>
               </Layout>
