@@ -7,6 +7,10 @@ import AccountsPage from './pages/AccountsPage'
 import KontoauszugPage from './pages/KontoauszugPage'
 import EURPage from './pages/EURPage'
 import DatevPage from './pages/DatevPage'
+import InvoicesPage from './pages/InvoicesPage'
+import InvoiceDetailPage from './pages/InvoiceDetailPage'
+import CustomersPage from './pages/CustomersPage'
+import MandantSettingsPage from './pages/MandantSettingsPage'
 import Layout from './components/Layout'
 import { useAuthStore } from './store/auth'
 
@@ -33,6 +37,10 @@ export default function App() {
                 <Route path="kontoauszug" element={<KontoauszugPage />} />
                 <Route path="eur" element={<EURPage />} />
                 <Route path="datev" element={<DatevPage />} />
+                <Route path="invoices" element={<InvoicesPage />} />
+                <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+                <Route path="customers" element={<CustomersPage />} />
+                <Route path="settings/mandant" element={<MandantSettingsPage />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

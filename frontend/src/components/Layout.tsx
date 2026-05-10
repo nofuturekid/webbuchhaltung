@@ -8,6 +8,9 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
+import ReceiptIcon from '@mui/icons-material/Receipt'
+import PeopleIcon from '@mui/icons-material/People'
+import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
@@ -22,6 +25,15 @@ const NAV_ITEMS = [
   { label: 'DATEV Export', path: '/datev', icon: <FileDownloadIcon /> },
 ]
 
+const NAV_ITEMS_RECHNUNGEN = [
+  { label: 'Rechnungen', path: '/invoices', icon: <ReceiptIcon /> },
+  { label: 'Kunden', path: '/customers', icon: <PeopleIcon /> },
+]
+
+const NAV_ITEMS_SETTINGS = [
+  { label: 'Einstellungen', path: '/settings/mandant', icon: <SettingsIcon /> },
+]
+
 export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -30,6 +42,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   function handleLogout() {
     logout()
     navigate('/login')
+  }
+
+  function isSelected(path: string): boolean {
+    return location.pathname.startsWith(path)
   }
 
   return (
@@ -56,7 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {NAV_ITEMS.map((item) => (
             <ListItemButton
               key={item.path}
-              selected={location.pathname.startsWith(item.path)}
+              selected={isSelected(item.path)}
               onClick={() => navigate(item.path)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
@@ -65,6 +81,31 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
         </List>
         <Divider />
+        <List>
+          {NAV_ITEMS_RECHNUNGEN.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_SETTINGS.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
       </Drawer>
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, ml: `${DRAWER_WIDTH}px` }}>
