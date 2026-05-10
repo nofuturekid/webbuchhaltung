@@ -108,6 +108,14 @@
 
 - Update README — setup wizard as primary onboarding path ([`3306fc8`])
 
+- Generate CHANGELOG, add ADRs, update README features ([`111d37c`])
+
+- Update project status after Docs-Agent run ([`7505e3d`])
+
+- Update project status after housekeeping ([`039ae6d`])
+
+- Number ADRs, split README into DEVELOPMENT + CONTRIBUTING ([`28534fe`])
+
 
 ### Features
 
@@ -185,6 +193,11 @@
 - Add gitignore, memory structure, and required directories ([`3da4840`])
 
 - Fix gitignore duplicates, add missing patterns, clarify status ([`7344ab0`])
+
+
+### Refactoring
+
+- Move backend/ and frontend/ under src/ ([`b99592e`])
 
 
 ### Testing
