@@ -131,7 +131,12 @@ async def confirm_document(
     user_id: uuid.UUID,
     data: ConfirmDocumentRequest,
 ) -> Document:
-    """Create a posted Booking from confirmed document data and link it to the document."""
+    """Confirm a document by either posting a Booking or creating a draft VendorInvoice.
+
+    When data.create_vendor_invoice is True a VendorInvoice (draft) is created and
+    linked to the document instead of posting a raw Booking.  The document status is
+    set to 'booked' in both cases so it cannot be confirmed again.
+    """
     doc = await _get_doc(session, doc_id, mandant_id)
     if doc.status == "booked":
         raise DocumentAlreadyBookedError()
@@ -148,57 +153,91 @@ async def confirm_document(
     if period.status in ("locked", "archived"):
         raise PeriodLockedError()
 
-    booking_obj = Booking(
-        mandant_id=mandant_id,
-        booking_type="entry",
-        date_booking=data.booking_date,
-        amount_cents=data.amount_cents,
-        notes=data.booking_text[:60],
-        coa_id=data.debit_coa_id,
-        counter_coa_id=data.credit_coa_id,
-        tax_key_code=data.tax_key_code,
-        status="draft",
-        created_by=user_id,
-    )
-    session.add(booking_obj)
-    await session.flush()
+    if data.create_vendor_invoice:
+        if data.vendor_id is None:
+            raise ConflictError("vendor_id required when create_vendor_invoice=True")
 
-    entry_number = await booking_service.get_next_entry_number(session, mandant_id)
-    booking_obj.status = "posted"
-    booking_obj.entry_number = entry_number
+        from app.schemas.vendor import VendorInvoiceCreate
+        from app.services.vendor_invoice import create_vendor_invoice
 
-    await write_audit(
-        session,
-        table_name="bookings",
-        record_id=booking_obj.id,
-        action="update",
-        change_summary={
-            "transition": "draft→posted",
-            "status": ["draft", "posted"],
-            "entry_number": [None, entry_number],
-            "source": "document_capture",
-        },
-        mandant_id=mandant_id,
-        user_id=user_id,
-    )
-    await session.flush()
+        inv_data = VendorInvoiceCreate(
+            vendor_id=data.vendor_id,
+            invoice_number=f"OCR-{str(doc.id)[:8]}",
+            invoice_date=data.booking_date,
+            amount_cents=data.amount_cents,
+            notes=data.booking_text,
+            document_id=doc.id,
+        )
+        await create_vendor_invoice(session, mandant_id, user_id, inv_data)
 
-    doc.booking_id = booking_obj.id
-    doc.status = "booked"
-    doc.updated_at = datetime.now(timezone.utc)
-    await session.flush()
-    await write_audit(
-        session,
-        table_name="documents",
-        record_id=doc.id,
-        action="update",
-        change_summary={
-            "status": ["processed", "booked"],
-            "booking_id": str(booking_obj.id),
-        },
-        mandant_id=mandant_id,
-        user_id=user_id,
-    )
+        doc.status = "booked"
+        doc.booking_id = None
+        doc.updated_at = datetime.now(timezone.utc)
+        await session.flush()
+        await write_audit(
+            session,
+            table_name="documents",
+            record_id=doc.id,
+            action="update",
+            change_summary={
+                "status": ["processed", "booked"],
+                "source": "vendor_invoice",
+            },
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
+    else:
+        booking_obj = Booking(
+            mandant_id=mandant_id,
+            booking_type="entry",
+            date_booking=data.booking_date,
+            amount_cents=data.amount_cents,
+            notes=data.booking_text[:60],
+            coa_id=data.debit_coa_id,
+            counter_coa_id=data.credit_coa_id,
+            tax_key_code=data.tax_key_code,
+            status="draft",
+            created_by=user_id,
+        )
+        session.add(booking_obj)
+        await session.flush()
+
+        entry_number = await booking_service.get_next_entry_number(session, mandant_id)
+        booking_obj.status = "posted"
+        booking_obj.entry_number = entry_number
+
+        await write_audit(
+            session,
+            table_name="bookings",
+            record_id=booking_obj.id,
+            action="update",
+            change_summary={
+                "transition": "draft→posted",
+                "status": ["draft", "posted"],
+                "entry_number": [None, entry_number],
+                "source": "document_capture",
+            },
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
+        await session.flush()
+
+        doc.booking_id = booking_obj.id
+        doc.status = "booked"
+        doc.updated_at = datetime.now(timezone.utc)
+        await session.flush()
+        await write_audit(
+            session,
+            table_name="documents",
+            record_id=doc.id,
+            action="update",
+            change_summary={
+                "status": ["processed", "booked"],
+                "booking_id": str(booking_obj.id),
+            },
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
     return doc
 
 

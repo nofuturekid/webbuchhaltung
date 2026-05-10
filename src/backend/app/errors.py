@@ -117,6 +117,24 @@ class UnsupportedFileTypeError(AppError):
     code = "UNSUPPORTED_FILE_TYPE"
 
 
+class BankTransactionAlreadyMatchedError(AppError):
+    status_code = 409
+    code = "BANK_TRANSACTION_ALREADY_MATCHED"
+
+    def __init__(self) -> None:
+        super().__init__("Bank transaction is already matched to a booking.")
+
+
+class VendorInvoiceImmutableError(AppError):
+    status_code = 422
+    code = "VENDOR_INVOICE_IMMUTABLE"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Posted vendor invoices are immutable (GoBD). Use a corrective booking instead."
+        )
+
+
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,

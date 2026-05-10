@@ -7,13 +7,18 @@ import BookIcon from '@mui/icons-material/MenuBook'
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
 import DescriptionIcon from '@mui/icons-material/Description'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import ReceiptIcon from '@mui/icons-material/Receipt'
 import PeopleIcon from '@mui/icons-material/People'
+import BusinessIcon from '@mui/icons-material/Business'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
+import TableChartIcon from '@mui/icons-material/TableChart'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 
@@ -37,8 +42,25 @@ const NAV_ITEMS_ANLAGEN = [
   { label: 'Belege', path: '/documents', icon: <DescriptionIcon /> },
 ]
 
+const NAV_ITEMS_BANKING = [
+  { label: 'Bankkonten', path: '/bank', icon: <AccountBalanceWalletIcon /> },
+]
+
+const NAV_ITEMS_AP = [
+  { label: 'Lieferanten', path: '/vendors', icon: <BusinessIcon /> },
+  { label: 'Eingangsrechnungen', path: '/vendor-invoices', icon: <ReceiptLongIcon /> },
+]
+
+const NAV_ITEMS_REPORTS = [
+  { label: 'Saldenliste', path: '/saldenliste', icon: <TableChartIcon /> },
+  { label: 'Bilanz', path: '/bilanz', icon: <AccountBalanceIcon /> },
+  { label: 'G+V', path: '/guv', icon: <TrendingUpIcon /> },
+  { label: 'BWA', path: '/bwa', icon: <BarChartIcon /> },
+]
+
 const NAV_ITEMS_SETTINGS = [
   { label: 'Einstellungen', path: '/settings/mandant', icon: <SettingsIcon /> },
+  { label: 'Administration', path: '/admin', icon: <AdminPanelSettingsIcon /> },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -103,6 +125,45 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Divider />
         <List>
           {NAV_ITEMS_ANLAGEN.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_BANKING.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_AP.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_REPORTS.map((item) => (
             <ListItemButton
               key={item.path}
               selected={isSelected(item.path)}
