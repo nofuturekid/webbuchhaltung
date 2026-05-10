@@ -72,6 +72,7 @@ class VendorInvoiceCreate(BaseModel):
 
 class VendorInvoicePostRequest(BaseModel):
     expense_coa_id: uuid.UUID  # SOLL: expense account chosen by user
+    vat_coa_id: uuid.UUID | None = None  # SOLL: Vorsteuer account (UStG §15), optional
 
 
 class VendorInvoiceResponse(BaseModel):

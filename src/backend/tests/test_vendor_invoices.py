@@ -5,6 +5,7 @@ This file focuses on coverage NOT present in test_vendors.py:
 - Audit trail verification
 - Document → VendorInvoice integration (T6)
 - Entry number assignment (GoBD §11)
+- Vorsteuer split (Sammelbuchung, UStG §15)
 """
 
 import uuid
@@ -57,8 +58,30 @@ async def _add_ap_account(session: AsyncSession, mandant_id: uuid.UUID) -> None:
     await session.flush()
 
 
-async def _setup(session: AsyncSession) -> tuple[dict[str, str], User, Mandant]:
-    """Create user + SKR03 mandant with full chart including AP account."""
+async def _add_vat_account(session: AsyncSession, mandant_id: uuid.UUID) -> uuid.UUID:
+    """Add SKR03 Vorsteuer account 1576 (backfilled by migration 0009 in production)."""
+    vat = ChartOfAccount(
+        mandant_id=mandant_id,
+        account_number="1576",
+        name="Vorsteuer 19%",
+        account_class="1xxx",
+        skr_variant="skr03",
+        is_custom=False,
+        private_share_percent=0,
+        is_active=True,
+    )
+    session.add(vat)
+    await session.flush()
+    return vat.id
+
+
+async def _setup(
+    session: AsyncSession,
+) -> tuple[dict[str, str], User, Mandant, uuid.UUID]:
+    """Create user + SKR03 mandant with full chart including AP and VAT accounts.
+
+    Returns (auth_headers, user, mandant, vat_account_id).
+    """
     user = User(
         email=f"vi{uuid.uuid4()}@x.com",
         hashed_password=hash_password("pw"),
@@ -76,8 +99,9 @@ async def _setup(session: AsyncSession) -> tuple[dict[str, str], User, Mandant]:
     await session.flush()
     await seed_skr_for_mandant(session, mandant.id, "skr03")
     await _add_ap_account(session, mandant.id)
+    vat_account_id = await _add_vat_account(session, mandant.id)
     token = create_access_token(user.id, mandant.id)
-    return {"Authorization": f"Bearer {token}"}, user, mandant
+    return {"Authorization": f"Bearer {token}"}, user, mandant, vat_account_id
 
 
 async def _expense_coa_id(session: AsyncSession, mandant_id: uuid.UUID) -> uuid.UUID:
@@ -131,7 +155,7 @@ async def _make_draft_invoice(
 
 async def test_create_vendor_service(db_session: AsyncSession) -> None:
     """create_vendor must persist and return a Vendor with correct fields."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await create_vendor(
         db_session,
         mandant.id,
@@ -146,7 +170,7 @@ async def test_create_vendor_service(db_session: AsyncSession) -> None:
 
 async def test_list_vendors_service(db_session: AsyncSession) -> None:
     """list_vendors must return all vendors for the mandant."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     for name in ("Alpha GmbH", "Beta AG"):
         await create_vendor(
             db_session,
@@ -168,7 +192,7 @@ async def test_list_vendors_service(db_session: AsyncSession) -> None:
 
 async def test_create_vendor_invoice_returns_draft(db_session: AsyncSession) -> None:
     """create_vendor_invoice must return a VendorInvoice with status='draft' and no booking_id."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
 
@@ -178,8 +202,11 @@ async def test_create_vendor_invoice_returns_draft(db_session: AsyncSession) -> 
 
 
 async def test_post_vendor_invoice_creates_booking(db_session: AsyncSession) -> None:
-    """post_vendor_invoice must create a posted Booking with correct accounts and entry_number."""
-    _, user, mandant = await _setup(db_session)
+    """post_vendor_invoice must create a posted Booking with correct accounts and entry_number.
+
+    Without vat_coa_id, a single booking is created with the gross amount.
+    """
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
 
@@ -212,9 +239,73 @@ async def test_post_vendor_invoice_creates_booking(db_session: AsyncSession) -> 
     assert booking.entry_number > 0
 
 
+async def test_post_vendor_invoice_with_vat_split(db_session: AsyncSession) -> None:
+    """With vat_coa_id, post_vendor_invoice creates a Sammelbuchung (UStG §15).
+
+    Two Bookings must share the same entry_number and booking_group_id:
+      - Primary: net amount (10000) to expense account
+      - VAT:     VAT amount (1900)  to Vorsteuer account
+    Both credit the AP account (1600).
+    """
+    _, user, mandant, vat_account_id = await _setup(db_session)
+    vendor = await _make_vendor(db_session, mandant, user)
+    invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
+    # invoice has amount_cents=11900, vat_amount_cents=1900
+
+    expense_id = await _expense_coa_id(db_session, mandant.id)
+
+    posted = await post_vendor_invoice(
+        db_session,
+        invoice.id,
+        mandant.id,
+        user.id,
+        expense_id,
+        "skr03",
+        vat_coa_id=vat_account_id,
+    )
+
+    assert posted.status == "posted"
+    assert posted.booking_id is not None
+
+    # Fetch the primary booking
+    primary_result = await db_session.execute(
+        select(Booking).where(Booking.id == posted.booking_id)
+    )
+    primary = primary_result.scalar_one()
+    assert primary.status == "posted"
+    assert primary.amount_cents == 10000  # net = 11900 - 1900
+    assert primary.coa_id == expense_id
+    assert primary.entry_number is not None
+    assert primary.entry_number > 0
+    assert primary.booking_group_id is not None
+
+    # Fetch the VAT booking — same entry_number and group
+    vat_result = await db_session.execute(
+        select(Booking).where(
+            Booking.mandant_id == mandant.id,
+            Booking.booking_group_id == primary.booking_group_id,
+            Booking.id != primary.id,
+        )
+    )
+    vat_booking = vat_result.scalar_one()
+    assert vat_booking.status == "posted"
+    assert vat_booking.amount_cents == 1900
+    assert vat_booking.coa_id == vat_account_id
+    assert vat_booking.entry_number == primary.entry_number  # Sammelbuchung
+    assert vat_booking.booking_group_id == primary.booking_group_id
+
+    # Both bookings must credit the AP account (1600)
+    for bk in (primary, vat_booking):
+        ap_result = await db_session.execute(
+            select(ChartOfAccount).where(ChartOfAccount.id == bk.counter_coa_id)
+        )
+        ap_acc = ap_result.scalar_one()
+        assert ap_acc.account_number == "1600"
+
+
 async def test_posted_invoice_has_entry_number(db_session: AsyncSession) -> None:
     """After posting, the linked booking must have entry_number > 0 (GoBD §11)."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
     expense_id = await _expense_coa_id(db_session, mandant.id)
@@ -233,7 +324,7 @@ async def test_posted_invoice_has_entry_number(db_session: AsyncSession) -> None
 
 async def test_post_creates_audit_trail(db_session: AsyncSession) -> None:
     """post_vendor_invoice must write audit log entries for both booking and invoice."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
     expense_id = await _expense_coa_id(db_session, mandant.id)
@@ -263,7 +354,7 @@ async def test_post_creates_audit_trail(db_session: AsyncSession) -> None:
 
 async def test_post_vendor_invoice_rejects_non_draft(db_session: AsyncSession) -> None:
     """Posting an already-posted invoice must raise VendorInvoiceImmutableError (GoBD)."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
     expense_id = await _expense_coa_id(db_session, mandant.id)
@@ -280,7 +371,7 @@ async def test_post_vendor_invoice_rejects_non_draft(db_session: AsyncSession) -
 
 async def test_mark_vendor_invoice_paid(db_session: AsyncSession) -> None:
     """Marking a posted invoice as paid must set status='paid'."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
     expense_id = await _expense_coa_id(db_session, mandant.id)
@@ -295,7 +386,7 @@ async def test_mark_vendor_invoice_paid(db_session: AsyncSession) -> None:
 
 async def test_cancel_vendor_invoice_draft(db_session: AsyncSession) -> None:
     """Cancelling a draft invoice must set status='cancelled'."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
 
@@ -305,7 +396,7 @@ async def test_cancel_vendor_invoice_draft(db_session: AsyncSession) -> None:
 
 async def test_cancel_vendor_invoice_posted_raises(db_session: AsyncSession) -> None:
     """Cancelling a posted invoice must raise VendorInvoiceImmutableError (GoBD §14)."""
-    _, user, mandant = await _setup(db_session)
+    _, user, mandant, _vat_id = await _setup(db_session)
     vendor = await _make_vendor(db_session, mandant, user)
     invoice = await _make_draft_invoice(db_session, mandant, user, vendor)
     expense_id = await _expense_coa_id(db_session, mandant.id)
@@ -356,7 +447,7 @@ async def test_confirm_document_with_vendor_invoice_flag(
     client, db_session: AsyncSession
 ) -> None:
     """Confirming with create_vendor_invoice=True must create a draft VendorInvoice linked to the doc."""
-    headers, user, mandant = await _setup(db_session)
+    headers, user, mandant, _vat_id = await _setup(db_session)
 
     # Create a vendor via API so we have a vendor_id
     vendor_resp = await client.post(
@@ -417,7 +508,7 @@ async def test_confirm_document_without_vendor_invoice_flag(
     client, db_session: AsyncSession
 ) -> None:
     """Standard confirm (create_vendor_invoice=False) must create a posted Booking."""
-    headers, _, mandant = await _setup(db_session)
+    headers, _, mandant, _vat_id = await _setup(db_session)
 
     accs = (
         (
