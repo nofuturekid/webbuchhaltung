@@ -99,6 +99,24 @@ class AssetAlreadyDisposedError(AppError):
         super().__init__("Asset has already been disposed.")
 
 
+class LLMExtractionError(AppError):
+    status_code = 502
+    code = "LLM_EXTRACTION_FAILED"
+
+
+class DocumentAlreadyBookedError(AppError):
+    status_code = 409
+    code = "DOCUMENT_ALREADY_BOOKED"
+
+    def __init__(self) -> None:
+        super().__init__("Document has already been booked.")
+
+
+class UnsupportedFileTypeError(AppError):
+    status_code = 422
+    code = "UNSUPPORTED_FILE_TYPE"
+
+
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,

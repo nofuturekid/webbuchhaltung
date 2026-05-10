@@ -2,6 +2,7 @@ from app.models.account import ChartOfAccount, TaxKey
 from app.models.asset import Asset, AssetSequence, DepreciationSchedule
 from app.models.base import Base, TimestampMixin
 from app.models.booking import Booking, BookingGroup, BookingSequence
+from app.models.document import Document
 from app.models.invoice import (
     Customer,
     Invoice,
@@ -25,6 +26,7 @@ __all__ = [
     "ChartOfAccount",
     "Customer",
     "DepreciationSchedule",
+    "Document",
     "Invoice",
     "InvoiceLineItem",
     "InvoiceSequence",
