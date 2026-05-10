@@ -25,6 +25,13 @@ services:
       # Never use this placeholder value in any non-local environment.
       SECRET_KEY: changeme-in-production
       STORAGE_BACKEND: local
+      # Token lifetimes (defaults: 30 min access, 7 days refresh).
+      # ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      # REFRESH_TOKEN_EXPIRE_DAYS: 7
+      # JWT algorithm (default: HS256).
+      # ALGORITHM: HS256
+      # Allowed CORS origins — comma-separated.
+      # CORS_ORIGINS: http://localhost:3000,https://app.example.com
       # First-run bootstrap (optional): set these to auto-create the first admin on startup.
       # Use a .env file or Docker secret — never commit credentials here.
       # BOOTSTRAP_ADMIN_EMAIL: admin@mycompany.de
