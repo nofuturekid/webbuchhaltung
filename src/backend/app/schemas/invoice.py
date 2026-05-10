@@ -104,6 +104,13 @@ class InvoiceListItem(BaseModel):
     currency: str
 
 
+class InvoiceListResponse(BaseModel):
+    items: list[InvoiceListItem]
+    total: int
+    page: int
+    page_size: int
+
+
 class InvoiceResponse(BaseModel):
     model_config = {"from_attributes": True}
     id: uuid.UUID

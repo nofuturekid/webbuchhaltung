@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
-import type { Invoice, InvoiceCreate, InvoiceListItem } from '../../types/invoice'
+import type { Invoice, InvoiceCreate, InvoiceListItem, InvoiceListResponse } from '../../types/invoice'
 
 interface InvoiceFilters {
   status_filter?: string
   customer_id?: string
   date_from?: string
   date_to?: string
+  q?: string
 }
 
-export function useInvoices(filters: InvoiceFilters = {}) {
-  return useQuery<InvoiceListItem[]>({
-    queryKey: ['invoices', filters],
+export function useInvoices(filters: InvoiceFilters = {}, page = 1, pageSize = 50) {
+  return useQuery<InvoiceListResponse>({
+    queryKey: ['invoices', filters, page, pageSize],
     queryFn: async () => {
-      const { data } = await api.get('/invoices', { params: filters })
+      const { data } = await api.get('/invoices', {
+        params: { ...filters, page, page_size: pageSize },
+      })
       return data
     },
   })
@@ -98,6 +101,28 @@ export function useSendInvoiceEmail() {
     mutationFn: async ({ id, override_email }: { id: string; override_email?: string }) => {
       const { data } = await api.post(`/invoices/${id}/send-email`, { override_email })
       return data
+    },
+  })
+}
+
+// Returns all issued invoices (unpaid) — drives Offene Forderungen widget
+export function useOpenReceivables(year: number) {
+  const dateFrom = `${year}-01-01`
+  const dateTo = `${year}-12-31`
+  return useQuery<InvoiceListItem[]>({
+    queryKey: ['invoices', 'open-receivables', year],
+    queryFn: async () => {
+      const { data } = await api.get('/invoices', {
+        params: { status_filter: 'issued', date_from: dateFrom, date_to: dateTo },
+      })
+      // Handle either plain array or paginated { items, total } response
+      const raw: unknown = data
+      if (Array.isArray(raw)) return raw as InvoiceListItem[]
+      if (raw !== null && typeof raw === 'object' && 'items' in raw) {
+        const paginated = raw as { items?: InvoiceListItem[] }
+        return paginated.items ?? []
+      }
+      return []
     },
   })
 }

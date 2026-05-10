@@ -35,6 +35,7 @@ async def list_(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     account_id: uuid.UUID | None = Query(None),
+    q: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -50,6 +51,7 @@ async def list_(
         account_id,
         page,
         page_size,
+        q,
     )
 
 

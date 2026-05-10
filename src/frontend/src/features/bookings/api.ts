@@ -4,12 +4,12 @@ import type { BookingListResponse, BookingResponse } from '../../types/api'
 
 export const BOOKINGS_KEY = ['bookings'] as const
 
-export function useBookings(page = 1, pageSize = 50) {
+export function useBookings(page = 1, pageSize = 50, filters: { q?: string } = {}) {
   return useQuery({
-    queryKey: [...BOOKINGS_KEY, page, pageSize],
+    queryKey: [...BOOKINGS_KEY, page, pageSize, filters],
     queryFn: () =>
       api.get<BookingListResponse>('/bookings', {
-        params: { page, page_size: pageSize },
+        params: { page, page_size: pageSize, ...filters },
       }).then((r) => r.data),
   })
 }

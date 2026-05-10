@@ -8,6 +8,7 @@ import {
   DialogTitle,
   IconButton,
   MenuItem,
+  Pagination,
   Select,
   Stack,
   Table,
@@ -25,6 +26,8 @@ import CancelIcon from '@mui/icons-material/Cancel'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import { useState } from 'react'
+
+const PAGE_SIZE = 50
 import { useSearchParams } from 'react-router-dom'
 import {
   useVendorInvoices,
@@ -75,12 +78,22 @@ export default function VendorInvoicesPage(): JSX.Element {
   const [sepaDialogOpen, setSepaDialogOpen] = useState(false)
   const [sepaDueDate, setSepaDueDate] = useState('')
 
-  const { data: invoices = [], isLoading } = useVendorInvoices({
-    status: statusFilter || undefined,
-    vendor_id: vendorFilter || undefined,
-    due_from: dateFrom || undefined,
-    due_to: dateTo || undefined,
-  })
+  const [page, setPage] = useState(1)
+
+  const { data, isLoading } = useVendorInvoices(
+    {
+      status: statusFilter || undefined,
+      vendor_id: vendorFilter || undefined,
+      due_from: dateFrom || undefined,
+      due_to: dateTo || undefined,
+    },
+    page,
+    PAGE_SIZE,
+  )
+
+  const invoices = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const { data: vendors = [] } = useVendors()
   const payInvoice = usePayVendorInvoice()
@@ -135,7 +148,7 @@ export default function VendorInvoicesPage(): JSX.Element {
       <Stack direction="row" gap={2} flexWrap="wrap" mb={2}>
         <Select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
           displayEmpty
           size="small"
           sx={{ minWidth: 160 }}
@@ -149,7 +162,7 @@ export default function VendorInvoicesPage(): JSX.Element {
 
         <Select
           value={vendorFilter}
-          onChange={(e) => setVendorFilter(e.target.value)}
+          onChange={(e) => { setVendorFilter(e.target.value); setPage(1) }}
           displayEmpty
           size="small"
           sx={{ minWidth: 200 }}
@@ -167,7 +180,7 @@ export default function VendorInvoicesPage(): JSX.Element {
           type="date"
           size="small"
           value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
+          onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
           InputLabelProps={{ shrink: true }}
         />
         <TextField
@@ -175,7 +188,7 @@ export default function VendorInvoicesPage(): JSX.Element {
           type="date"
           size="small"
           value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
+          onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
           InputLabelProps={{ shrink: true }}
         />
       </Stack>
@@ -185,10 +198,10 @@ export default function VendorInvoicesPage(): JSX.Element {
           <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
             <TableCell>Lieferant</TableCell>
             <TableCell>Belegnummer</TableCell>
-            <TableCell>Datum</TableCell>
-            <TableCell>Fälligkeit</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Datum</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Fälligkeit</TableCell>
             <TableCell align="right">Betrag</TableCell>
-            <TableCell align="right">MwSt.</TableCell>
+            <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>MwSt.</TableCell>
             <TableCell>Status</TableCell>
             <TableCell />
           </TableRow>
@@ -207,12 +220,12 @@ export default function VendorInvoicesPage(): JSX.Element {
               <TableRow key={invoice.id} hover>
                 <TableCell>{vendorMap.get(invoice.vendor_id) ?? invoice.vendor_id}</TableCell>
                 <TableCell>{invoice.invoice_number}</TableCell>
-                <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-                <TableCell>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{formatDate(invoice.invoice_date)}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
                 <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
                   {formatEuro(invoice.amount_cents)}
                 </TableCell>
-                <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                <TableCell align="right" sx={{ fontFamily: 'monospace', display: { xs: 'none', sm: 'table-cell' } }}>
                   {formatEuro(invoice.vat_amount_cents)}
                 </TableCell>
                 <TableCell>
@@ -281,6 +294,20 @@ export default function VendorInvoicesPage(): JSX.Element {
           )}
         </TableBody>
       </Table>
+
+      {totalPages > 1 && (
+        <Box mt={2} display="flex" flexDirection="column" alignItems="center" gap={1}>
+          <Typography variant="body2" color="text.secondary">
+            Seite {page} von {totalPages} — {total} Einträge
+          </Typography>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, p) => setPage(p)}
+            color="primary"
+          />
+        </Box>
+      )}
 
       {/* Create invoice dialog */}
       <VendorInvoiceFormDialog

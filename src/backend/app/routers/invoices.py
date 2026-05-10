@@ -2,8 +2,8 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -15,7 +15,7 @@ from app.models.mandant import Mandant
 from app.models.user import User
 from app.schemas.invoice import (
     InvoiceCreate,
-    InvoiceListItem,
+    InvoiceListResponse,
     InvoiceResponse,
     InvoiceUpdate,
     LineItemResponse,
@@ -81,27 +81,45 @@ async def _build_response(session: AsyncSession, invoice: Invoice) -> InvoiceRes
     return data
 
 
-@router.get("/", response_model=list[InvoiceListItem])
+@router.get("/", response_model=InvoiceListResponse)
 async def list_invoices(
     status_filter: str | None = None,
     customer_id: uuid.UUID | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     mandant_id: uuid.UUID = Depends(get_mandant_id),
     session: AsyncSession = Depends(get_db),
-) -> list[Invoice]:
-    q = select(Invoice).where(Invoice.mandant_id == mandant_id)
+) -> InvoiceListResponse:
+    stmt = select(Invoice).where(Invoice.mandant_id == mandant_id)
     if status_filter:
-        q = q.where(Invoice.status == status_filter)
+        stmt = stmt.where(Invoice.status == status_filter)
     if customer_id:
-        q = q.where(Invoice.customer_id == customer_id)
+        stmt = stmt.where(Invoice.customer_id == customer_id)
     if date_from:
-        q = q.where(Invoice.issue_date >= date_from)
+        stmt = stmt.where(Invoice.issue_date >= date_from)
     if date_to:
-        q = q.where(Invoice.issue_date <= date_to)
-    q = q.order_by(Invoice.created_at.desc())
-    result = await session.execute(q)
-    return list(result.scalars().all())
+        stmt = stmt.where(Invoice.issue_date <= date_to)
+    if q:
+        # Join customer for name search; use func.lower() for MariaDB compatibility
+        term = q.lower()
+        stmt = stmt.join(Customer, Invoice.customer_id == Customer.id).where(
+            func.lower(Invoice.invoice_number).contains(term)
+            | func.lower(Customer.name).contains(term)
+        )
+    count_q = select(func.count()).select_from(stmt.subquery())
+    total = (await session.execute(count_q)).scalar_one()
+    items_result = await session.execute(
+        stmt.order_by(Invoice.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    items = list(items_result.scalars().all())
+    return InvoiceListResponse(
+        items=items, total=int(total), page=page, page_size=page_size
+    )
 
 
 @router.post("/", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)

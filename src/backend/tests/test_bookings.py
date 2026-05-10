@@ -455,6 +455,48 @@ async def test_cannot_reverse_already_reversed_booking(client, db_session):
     assert rev_again.status_code == 409
 
 
+async def test_list_bookings_search(client, db_session):
+    """Search by notes returns matching bookings; nonsense returns empty."""
+    headers, user, mandant, acc1, acc2 = await _setup(db_session)
+    # Create booking with a unique, searchable description in notes
+    unique_notes = "UniqueSearchTerm_XYZ"
+    await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-15",
+            "amount_cents": 10000,
+            "notes": unique_notes,
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+    # Create a second booking with different notes
+    await client.post(
+        "/api/v1/bookings",
+        json={
+            "date_booking": "2026-01-16",
+            "amount_cents": 20000,
+            "notes": "OtherNotes",
+            "coa_id": str(acc1.id),
+            "counter_coa_id": str(acc2.id),
+        },
+        headers=headers,
+    )
+
+    # Search by the unique term — must return exactly 1 booking
+    resp = await client.get(f"/api/v1/bookings?q={unique_notes}", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1, "Search must return only the matching booking"
+    assert body["items"][0]["notes"] == unique_notes
+
+    # Nonsense search — must return 0 results
+    resp_empty = await client.get("/api/v1/bookings?q=XXXXNOTEXIST", headers=headers)
+    assert resp_empty.status_code == 200
+    assert resp_empty.json()["total"] == 0
+
+
 async def test_cannot_re_reverse_a_reversal_booking(client, db_session):
     headers, user, mandant, acc1, acc2 = await _setup(db_session)
     resp = await client.post(

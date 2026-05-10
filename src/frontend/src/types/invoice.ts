@@ -74,6 +74,13 @@ export interface Invoice {
   line_items: LineItem[]
 }
 
+export interface InvoiceListResponse {
+  items: InvoiceListItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface InvoiceTemplate {
   id: string
   mandant_id: string
