@@ -13,6 +13,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import ReceiptIcon from '@mui/icons-material/Receipt'
 import PeopleIcon from '@mui/icons-material/People'
+import BusinessIcon from '@mui/icons-material/Business'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -40,6 +41,11 @@ const NAV_ITEMS_ANLAGEN = [
 
 const NAV_ITEMS_BANKING = [
   { label: 'Bankkonten', path: '/bank', icon: <AccountBalanceWalletIcon /> },
+]
+
+const NAV_ITEMS_AP = [
+  { label: 'Lieferanten', path: '/vendors', icon: <BusinessIcon /> },
+  { label: 'Eingangsrechnungen', path: '/vendor-invoices', icon: <ReceiptLongIcon /> },
 ]
 
 const NAV_ITEMS_SETTINGS = [
@@ -121,6 +127,19 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Divider />
         <List>
           {NAV_ITEMS_BANKING.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_AP.map((item) => (
             <ListItemButton
               key={item.path}
               selected={isSelected(item.path)}
