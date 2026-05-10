@@ -1,7 +1,10 @@
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.account import ChartOfAccount
+from app.models.booking import Booking
 from app.models.invoice import Customer
 from app.models.mandant import Mandant
 from app.models.user import User, UserMandant
@@ -159,12 +162,37 @@ async def test_cancel_issued_invoice_returns_200_status_cancelled(client, db_ses
         headers=headers,
     )
     invoice_id = create_resp.json()["id"]
-    await client.post(f"/api/v1/invoices/{invoice_id}/issue", headers=headers)
+    issue_data = (
+        await client.post(f"/api/v1/invoices/{invoice_id}/issue", headers=headers)
+    ).json()
+    original_booking_id = uuid.UUID(issue_data["booking_id"])
+
     cancel_resp = await client.post(
         f"/api/v1/invoices/{invoice_id}/cancel", headers=headers
     )
     assert cancel_resp.status_code == 200, cancel_resp.text
     assert cancel_resp.json()["status"] == "cancelled"
+
+    # GoBD §14: original booking must be marked as reversed, not deleted
+    original_booking_result = await db_session.execute(
+        select(Booking).where(Booking.id == original_booking_id)
+    )
+    original_booking = original_booking_result.scalar_one()
+    assert (
+        original_booking.status == "reversed"
+    ), "Original booking must be marked 'reversed', not deleted (GoBD §14)"
+
+    # A separate reversal row must exist referencing the original (Stornobuchung)
+    reversal_result = await db_session.execute(
+        select(Booking).where(Booking.reversal_of_id == original_booking_id)
+    )
+    reversal_booking = reversal_result.scalar_one_or_none()
+    assert (
+        reversal_booking is not None
+    ), "A reversal booking must exist as a separate DB row (reversal_of_id set)"
+    assert (
+        reversal_booking.id != original_booking_id
+    ), "Reversal must be a distinct booking row, not the original"
 
 
 async def test_delete_draft_invoice_returns_204(client, db_session):
@@ -259,3 +287,103 @@ async def test_invalid_vat_rate_rejected(client, db_session):
     payload["line_items"][0]["vat_rate"] = "0.10"  # invalid rate
     resp = await client.post("/api/v1/invoices/", json=payload, headers=headers)
     assert resp.status_code == 422
+
+
+async def test_issue_invoice_7pct_vat_uses_correct_accounts(client, db_session):
+    """UStG §12: 7% VAT invoices must book to SKR03 account 8300 (Erlöse 7% USt)."""
+    headers, user, mandant, customer = await _setup(db_session)
+    payload = {
+        "customer_id": str(customer.id),
+        "issue_date": "2026-05-01",
+        "due_date": "2026-05-15",
+        "notes": "7% VAT test",
+        "line_items": [
+            {
+                "position": 1,
+                "description": "Buch",
+                "quantity": "1.000",
+                "unit": "Stück",
+                "unit_price_cents": 5000,
+                "vat_rate": "0.07",
+            }
+        ],
+    }
+    create_resp = await client.post("/api/v1/invoices/", json=payload, headers=headers)
+    assert create_resp.status_code == 201
+    invoice_id = create_resp.json()["id"]
+
+    issue_data = (
+        await client.post(f"/api/v1/invoices/{invoice_id}/issue", headers=headers)
+    ).json()
+    assert issue_data["status"] == "issued"
+    booking_id = uuid.UUID(issue_data["booking_id"])
+
+    booking_result = await db_session.execute(
+        select(Booking).where(Booking.id == booking_id)
+    )
+    booking = booking_result.scalar_one()
+
+    # Resolve account numbers from ChartOfAccount IDs
+    coa_result = await db_session.execute(
+        select(ChartOfAccount).where(ChartOfAccount.id == booking.coa_id)
+    )
+    coa = coa_result.scalar_one()
+
+    counter_coa_result = await db_session.execute(
+        select(ChartOfAccount).where(ChartOfAccount.id == booking.counter_coa_id)
+    )
+    counter_coa = counter_coa_result.scalar_one()
+
+    # SKR03: debit = Forderungen (1400), credit = Erlöse 7% USt (8300)
+    assert (
+        counter_coa.account_number == "8300"
+    ), f"Expected credit account 8300 (Erlöse 7% USt, SKR03) but got {counter_coa.account_number}"
+    assert coa.account_number in (
+        "1200",
+        "1400",
+    ), f"Expected debit account 1200 or 1400 (Forderungen) but got {coa.account_number}"
+
+
+async def test_issue_invoice_zero_vat_uses_correct_accounts(client, db_session):
+    """UStG §4: 0% VAT invoices must book to SKR03 account 8200 (steuerfreie Erlöse)."""
+    headers, user, mandant, customer = await _setup(db_session)
+    payload = {
+        "customer_id": str(customer.id),
+        "issue_date": "2026-05-01",
+        "due_date": "2026-05-15",
+        "notes": "0% VAT test",
+        "line_items": [
+            {
+                "position": 1,
+                "description": "Steuerfreie Leistung",
+                "quantity": "1.000",
+                "unit": "Stück",
+                "unit_price_cents": 8000,
+                "vat_rate": "0.00",
+            }
+        ],
+    }
+    create_resp = await client.post("/api/v1/invoices/", json=payload, headers=headers)
+    assert create_resp.status_code == 201
+    invoice_id = create_resp.json()["id"]
+
+    issue_data = (
+        await client.post(f"/api/v1/invoices/{invoice_id}/issue", headers=headers)
+    ).json()
+    assert issue_data["status"] == "issued"
+    booking_id = uuid.UUID(issue_data["booking_id"])
+
+    booking_result = await db_session.execute(
+        select(Booking).where(Booking.id == booking_id)
+    )
+    booking = booking_result.scalar_one()
+
+    counter_coa_result = await db_session.execute(
+        select(ChartOfAccount).where(ChartOfAccount.id == booking.counter_coa_id)
+    )
+    counter_coa = counter_coa_result.scalar_one()
+
+    # SKR03: credit = steuerfreie Erlöse (8200)
+    assert (
+        counter_coa.account_number == "8200"
+    ), f"Expected credit account 8200 (steuerfreie Erlöse, SKR03) but got {counter_coa.account_number}"
