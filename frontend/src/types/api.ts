@@ -126,3 +126,19 @@ export interface UserResponse {
   email: string
   is_active: boolean
 }
+
+export interface SetupStatusResponse {
+  needs_setup: boolean
+}
+
+export interface SetupRequest {
+  email: string
+  password: string
+  mandant_name: string
+  skr_variant: 'skr03' | 'skr04' | 'skr07'
+}
+
+export interface SetupResponse {
+  access_token: string
+  refresh_token: string
+}

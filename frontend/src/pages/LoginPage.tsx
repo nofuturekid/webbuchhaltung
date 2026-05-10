@@ -2,9 +2,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate } from 'react-router-dom'
-import { Box, Button, TextField, Typography, Paper, Alert } from '@mui/material'
+import { Box, Button, TextField, Typography, Paper, Alert, Link } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
 import { useLoginMutation } from '../features/auth/api'
 import { useAuthStore } from '../store/auth'
+import { useSystemStatus } from '../features/setup/api'
 
 const schema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
@@ -20,6 +22,7 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   })
   const login = useLoginMutation()
+  const { data: statusData, isLoading: statusLoading } = useSystemStatus()
 
   async function onSubmit(values: FormValues) {
     const result = await login.mutateAsync(values)
@@ -54,6 +57,14 @@ export default function LoginPage() {
           <Button type="submit" variant="contained" loading={login.isPending}>
             Anmelden
           </Button>
+          {!statusLoading && statusData?.needs_setup === true && (
+            <Alert severity="info">
+              Noch kein Benutzerkonto vorhanden.{' '}
+              <Link component={RouterLink} to="/setup">
+                Ersteinrichtung starten
+              </Link>
+            </Alert>
+          )}
         </Box>
       </Paper>
     </Box>
