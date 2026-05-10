@@ -81,6 +81,24 @@ class AccountLookupError(AppError):
     code = "ACCOUNT_LOOKUP_FAILED"
 
 
+class AssetImmutableError(AppError):
+    status_code = 422
+    code = "ASSET_IMMUTABLE"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Cannot modify purchase_amount_cents or useful_life_months after depreciation has been posted (GoBD)."
+        )
+
+
+class AssetAlreadyDisposedError(AppError):
+    status_code = 409
+    code = "ASSET_ALREADY_DISPOSED"
+
+    def __init__(self) -> None:
+        super().__init__("Asset has already been disposed.")
+
+
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
