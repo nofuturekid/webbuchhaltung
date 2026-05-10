@@ -40,6 +40,7 @@ async def list_bookings(
     account_id: uuid.UUID | None = None,
     page: int = 1,
     page_size: int = 50,
+    search: str | None = None,
 ) -> BookingListResponse:
     q = select(Booking).where(Booking.mandant_id == mandant_id)
     if booking_type:
@@ -53,6 +54,13 @@ async def list_bookings(
     if account_id:
         q = q.where(
             (Booking.coa_id == account_id) | (Booking.counter_coa_id == account_id)
+        )
+    if search:
+        # Use func.lower() + contains() for MariaDB/PostgreSQL compatibility
+        term = search.lower()
+        q = q.where(
+            func.lower(Booking.notes).contains(term)
+            | func.lower(Booking.document_number).contains(term)
         )
     count_q = select(func.count()).select_from(q.subquery())
     total = (await session.execute(count_q)).scalar_one()
