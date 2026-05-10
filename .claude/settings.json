@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/hooks/lint-and-typecheck.sh"
+            "command": "/home/thomas/git/WebBuchhaltung/scripts/hooks/lint-and-typecheck.sh"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/hooks/git-gate.sh"
+            "command": "/home/thomas/git/WebBuchhaltung/scripts/hooks/git-gate.sh"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/hooks/session-end.sh"
+            "command": "/home/thomas/git/WebBuchhaltung/scripts/hooks/session-end.sh"
           }
         ]
       }

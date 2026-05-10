@@ -1,7 +1,7 @@
 # Project Status
 
-**Last updated:** 2026-05-09
-**Phase:** Phase 2 complete — PR #3 open for review
+**Last updated:** 2026-05-10
+**Phase:** Phase 3 implementation complete — PRs ready to open
 
 ## Done
 - Design spec: docs/superpowers/specs/2026-05-08-claude-agent-team-setup-design.md
@@ -35,8 +35,22 @@
   - DATEV export: blob download
   - Dashboard: live EÜR summary + booking counts
 
+- **Phase 3 Rechnungen (PR pending):**
+  - Backend branch: `feature/backend-phase3-rechnungen` (commit e80e0ee)
+    All 16 tasks done: Customer CRUD, invoice sequences (SELECT FOR UPDATE + year-reset),
+    invoice CRUD, issue/cancel+booking (per VAT bucket), PDF (weasyprint+Jinja2),
+    email (smtplib+Fernet), template+sequence endpoints, Alembic migration 0003
+    84 backend tests pass
+  - Frontend branch: `feature/frontend-phase3-rechnungen` (commit d3abf7d)
+    TypeScript types, TanStack Query hooks, CustomersPage, InvoicesPage,
+    InvoiceFormDialog (Drawer+LineItemsTable+totals), InvoiceDetailPage,
+    MandantSettingsPage (SMTP+Bankverbindung tabs), routing+nav
+    19 frontend tests pass (4 new lineItemCalc tests)
+
 ## Open
-- Merge PR #3 (feature/frontend-phase2 → main): https://github.com/nofuturekid/webbuchhaltung/pull/3
+- Open PR: `feature/backend-phase3-rechnungen → main`
+- Open PR: `feature/frontend-phase3-rechnungen → main` (after backend merged)
+- Full-stack smoke test (Docker Compose build + alembic upgrade + end-to-end)
 - Follow-up: code-split bundle (currently 670 KB) with dynamic import()
 - Follow-up: backend test command needs TEST_DATABASE_URL env var inside Docker container
 
@@ -47,4 +61,21 @@
 
 
 
-<!-- session-end: 2026-05-09 18:18 -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- session-end: 2026-05-09 20:16 -->
