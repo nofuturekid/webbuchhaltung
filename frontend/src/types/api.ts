@@ -8,6 +8,13 @@ export interface MandantResponse {
   fiscal_year_start: number
   skr_variant: string
   is_active: boolean
+  iban: string | null
+  bic: string | null
+  smtp_host: string | null
+  smtp_port: number
+  smtp_user: string | null
+  smtp_from: string | null
+  smtp_from_name: string | null
 }
 
 export interface AccountResponse {
