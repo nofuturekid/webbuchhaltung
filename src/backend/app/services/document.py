@@ -80,7 +80,7 @@ async def process_document(
     )
     known_accounts = [row[0] for row in accounts_result.fetchall()]
     result = await extract_document(content, doc.mime_type, known_accounts)
-    doc.extracted_json = result.model_dump()
+    doc.extracted_json = result.model_dump(mode="json")
     doc.status = "processed"
     doc.updated_at = datetime.now(timezone.utc)
     await session.flush()
