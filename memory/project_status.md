@@ -28,10 +28,14 @@
   - Removed empty `database/` and `devops/` directories
 
 ## Open
-- Full-stack smoke test (Docker Compose build — verify src/ paths work end-to-end)
-- Follow-up: code-split bundle (currently 670 KB) with dynamic import()
-- Follow-up: "Mit freundlichen Grüßen" in invoice_email.py could be configurable per mandant
-- [NON-BLOCKING] docker-compose.yml missing CORS_ORIGINS, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM comments — deferred to next feature cycle
+- [NON-BLOCKING] setup.py missing summary= decorators on GET/POST /setup endpoints
+
+## Done (2026-05-10 continued)
+- Smoke test passed after src/ restructure; fixed asyncio.to_thread for migrations
+- CLAUDE.md: corrected SKR03 account count comment (23, not ~90)
+- docker-compose.yml: added CORS/token env var comments (commit 44a0d79)
+- Bundle splitting: React.lazy + Vite manualChunks — initial JS 15 KB, vendor chunks cached separately (commit 9ce215e)
+- Email template configurable per mandant: email_salutation/email_closing fields, migration 0005, 92 tests pass (commit 1044c94)
 
 ## Key Decisions
 - See memory/project_decisions.md
@@ -40,4 +44,10 @@
 
 
 
-<!-- session-end: 2026-05-10 16:53 -->
+
+
+
+
+
+
+<!-- session-end: 2026-05-10 17:15 -->
