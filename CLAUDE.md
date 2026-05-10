@@ -275,6 +275,9 @@ asyncio.run(seed())
 ```
 
 ### 3. Smoke test (end-to-end curl)
+
+Run after every full-stack build to verify the golden path works end-to-end.
+
 ```bash
 # Health
 curl http://localhost:8000/health  # → {"status":"ok"}
@@ -294,9 +297,49 @@ TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
   python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
 
+# Phase 3 — Rechnungen golden path
+CUSTOMER_ID=$(curl -s -X POST "http://localhost:8000/api/v1/customers/" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"Test AG","city":"Berlin","email":"test@example.com"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+INVOICE_ID=$(curl -s -X POST "http://localhost:8000/api/v1/invoices/" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d "{\"customer_id\":\"$CUSTOMER_ID\",\"line_items\":[{\"description\":\"Beratung\",\"quantity\":1,\"unit_price_cents\":10000,\"vat_rate\":0.19,\"position\":1}]}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+curl -s -X POST "http://localhost:8000/api/v1/invoices/$INVOICE_ID/issue" \
+  -H "Authorization: Bearer $TOKEN" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('status:', d['status'], '| booking:', d['booking_id'])"
+
+curl -s -o /tmp/invoice.pdf -w "PDF: HTTP %{http_code}, %{size_download} bytes\n" \
+  "http://localhost:8000/api/v1/invoices/$INVOICE_ID/pdf" \
+  -H "Authorization: Bearer $TOKEN"
+
 # API docs
 open http://localhost:8000/docs
 ```
+
+### 4. Contract test (API schema vs. frontend types)
+
+Run when backend router files change — catches breaking API changes before they
+reach the frontend. Spawn the **Review-Agent** which runs this automatically, or
+run manually:
+
+```bash
+# Generate current OpenAPI schema from running backend
+curl -s http://localhost:8000/openapi.json -o /tmp/openapi-current.json
+
+# Re-generate frontend TypeScript types from it
+cd frontend && npx openapi-typescript /tmp/openapi-current.json -o src/types/api-generated.ts
+
+# Diff against the committed types — any new field is a potential contract gap
+diff src/types/api.ts src/types/api-generated.ts
+```
+
+**When to run:** any time a Pydantic schema or router signature changes.
+**Owner:** Review-Agent checks this automatically before every merge.
+If drift is found: update `frontend/src/types/api.ts` to match — never ignore the diff.
 
 ### Known Docker gotchas
 - Running `uv run pytest` on the host rebuilds `.venv` with the system Python,
