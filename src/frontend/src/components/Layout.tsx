@@ -16,6 +16,8 @@ import PeopleIcon from '@mui/icons-material/People'
 import BusinessIcon from '@mui/icons-material/Business'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
+import TableChartIcon from '@mui/icons-material/TableChart'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 
@@ -46,6 +48,13 @@ const NAV_ITEMS_BANKING = [
 const NAV_ITEMS_AP = [
   { label: 'Lieferanten', path: '/vendors', icon: <BusinessIcon /> },
   { label: 'Eingangsrechnungen', path: '/vendor-invoices', icon: <ReceiptLongIcon /> },
+]
+
+const NAV_ITEMS_REPORTS = [
+  { label: 'Saldenliste', path: '/saldenliste', icon: <TableChartIcon /> },
+  { label: 'Bilanz', path: '/bilanz', icon: <AccountBalanceIcon /> },
+  { label: 'G+V', path: '/guv', icon: <TrendingUpIcon /> },
+  { label: 'BWA', path: '/bwa', icon: <BarChartIcon /> },
 ]
 
 const NAV_ITEMS_SETTINGS = [
@@ -140,6 +149,19 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Divider />
         <List>
           {NAV_ITEMS_AP.map((item) => (
+            <ListItemButton
+              key={item.path}
+              selected={isSelected(item.path)}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {NAV_ITEMS_REPORTS.map((item) => (
             <ListItemButton
               key={item.path}
               selected={isSelected(item.path)}
