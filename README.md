@@ -53,41 +53,29 @@ docker compose up --build -d
 docker compose exec backend uv run alembic upgrade head
 ```
 
-Seed the first admin user (fresh database only):
+Open the app: **http://localhost:3000**
 
-```bash
-docker compose exec backend uv run python -c "
-import asyncio
-from app.database import engine
-from app.models.user import User, UserMandant
-from app.models.mandant import Mandant
-from app.services.auth import hash_password
-from app.services.account import seed_skr_for_mandant
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
+On a fresh database the login page shows a "Ersteinrichtung starten" link.
+Click it to open the setup wizard — enter your e-mail, a password (min. 8 characters),
+your company name, and the chart-of-accounts variant (SKR03 is the standard).
+The wizard creates the admin account and the first Mandant, then logs you in automatically.
 
-async def seed():
-    s = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with s() as session:
-        user = User(email='admin@example.com', hashed_password=hash_password('admin123'))
-        session.add(user)
-        mandant = Mandant(name='Muster GmbH', skr_variant='skr03',
-                          datev_beraternummer='70000', datev_mandantennummer='12345')
-        session.add(mandant)
-        await session.flush()
-        session.add(UserMandant(user_id=user.id, mandant_id=mandant.id, role='admin'))
-        await session.flush()
-        await seed_skr_for_mandant(session, mandant.id, 'skr03')
-        await session.commit()
-        print('Done — login: admin@example.com / admin123')
+> **Headless / CI alternative:** set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`
+> in the environment before starting the container — the backend will create the admin
+> automatically on first boot without any UI interaction:
+> ```bash
+> BOOTSTRAP_ADMIN_EMAIL=admin@mycompany.de \
+> BOOTSTRAP_ADMIN_PASSWORD=secret123 \
+> docker compose up --build -d
+> docker compose exec backend uv run alembic upgrade head
+> ```
+> Add `BOOTSTRAP_MANDANT_NAME` and `BOOTSTRAP_SKR_VARIANT` to customise the Mandant
+> (defaults: "Meine Firma", skr03).
 
-asyncio.run(seed())
-"
-```
+API docs: http://localhost:8000/docs
 
-Open the app: http://localhost:3000 · API docs: http://localhost:8000/docs
-
-> **Before any non-local deployment:** set a strong `SECRET_KEY` in your environment or Docker secrets. The placeholder value in `docker-compose.yml` must never be used in production.
+> **Before any non-local deployment:** set a strong `SECRET_KEY` in your environment or
+> Docker secrets. The placeholder value in `docker-compose.yml` must never be used in production.
 
 ---
 
@@ -153,25 +141,31 @@ uv run alembic downgrade -1
 
 ## Smoke test (end-to-end)
 
-After `docker compose up --build -d` and `alembic upgrade head`:
+After `docker compose up --build -d` and `alembic upgrade head`, run the setup wizard
+at http://localhost:3000 or use the headless bootstrap env vars, then:
 
 ```bash
 # Health checks
 curl http://localhost:8000/health   # → {"status":"ok"}
 curl http://localhost:3000          # → HTML login page
 
-# Obtain a token
+# After bootstrap: login and switch mandant
+EMAIL=admin@mycompany.de PASSWORD=secret123   # adjust to your bootstrap credentials
+
 TOKEN1=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"admin123"}' \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# Switch mandant (replace <MANDANT_ID> with the id printed during seed)
+MANDANT_ID=$(curl -s -H "Authorization: Bearer $TOKEN1" \
+  http://localhost:8000/api/v1/mandants \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+
 TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
-  "http://localhost:8000/api/v1/mandants/<MANDANT_ID>/switch" \
+  "http://localhost:8000/api/v1/mandants/$MANDANT_ID/switch" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# Verify chart of accounts (~90 SKR03 accounts)
+# Verify chart of accounts
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
   python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
 
