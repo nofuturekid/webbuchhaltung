@@ -296,7 +296,7 @@ TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
   "http://localhost:8000/api/v1/mandants/<MANDANT_ID>/switch" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# Verify accounts seeded (should return ~90 SKR03 accounts)
+# Verify accounts seeded (should return 23 SKR03 accounts)
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
   python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
 
