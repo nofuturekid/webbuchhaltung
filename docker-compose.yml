@@ -25,6 +25,12 @@ services:
       # Never use this placeholder value in any non-local environment.
       SECRET_KEY: changeme-in-production
       STORAGE_BACKEND: local
+      # First-run bootstrap (optional): set these to auto-create the first admin on startup.
+      # Use a .env file or Docker secret — never commit credentials here.
+      # BOOTSTRAP_ADMIN_EMAIL: admin@mycompany.de
+      # BOOTSTRAP_ADMIN_PASSWORD: changeme
+      # BOOTSTRAP_MANDANT_NAME: Meine GmbH
+      # BOOTSTRAP_SKR_VARIANT: skr03
     depends_on:
       db:
         condition: service_healthy

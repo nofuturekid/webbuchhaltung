@@ -17,6 +17,7 @@ import {
   CircularProgress,
   FormHelperText,
 } from '@mui/material'
+import axios from 'axios'
 import { useSystemStatus, useSetupMutation } from '../features/setup/api'
 import { useAuthStore } from '../store/auth'
 
@@ -76,8 +77,8 @@ export default function SetupPage() {
 
   const isAlreadySetup =
     setup.isError &&
-    setup.error instanceof Error &&
-    (setup.error as { status?: number } & Error).status === 404
+    axios.isAxiosError(setup.error) &&
+    setup.error.response?.status === 404
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
