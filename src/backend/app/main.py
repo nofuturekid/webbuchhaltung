@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -77,7 +78,7 @@ def _run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    _run_migrations()
+    await asyncio.to_thread(_run_migrations)
     await _run_env_bootstrap()
     yield
 
