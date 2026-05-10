@@ -44,6 +44,8 @@ class ConfirmDocumentRequest(BaseModel):
     booking_text: str
     booking_date: date
     tax_key_code: int | None = None  # integer FK to tax_keys.code
+    create_vendor_invoice: bool = False
+    vendor_id: uuid.UUID | None = None
 
 
 class DocumentListResponse(BaseModel):
