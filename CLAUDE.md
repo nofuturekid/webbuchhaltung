@@ -104,7 +104,8 @@ It never writes domain code itself. All implementation is delegated to sub-agent
 3. Save each agent's output to `.claude/state/<agent>-current.md`
 4. Read the output, decide next steps, spawn next agent(s)
 5. **After every implementation**: spawn QA-Agent to run smoke test + contract test
-6. Gate agents (Security, Tax) must pass before push/merge
+6. **After QA passes**: spawn Docs-Agent to update README, CHANGELOG, and ADRs
+7. Gate agents (Security, Tax) must pass before push/merge
 
 ### How to spawn an agent
 ```python
@@ -139,6 +140,7 @@ focused context. Do NOT spawn agents for trivial one-liners or config tweaks.
 | Accounting logic, GoBD compliance check | Tax | `agents/tax.md` |
 | Import/export formats (DATEV, SEPA, XRechnung) | Data-Exchange | `agents/data-exchange.md` |
 | Pre-merge cross-domain review | Review | `agents/review.md` |
+| README, CHANGELOG, ADRs, API prose | Docs | `agents/docs.md` |
 
 ### Parallel vs. sequential spawning
 - **Parallel**: spawn multiple agents in one message when tasks are independent
