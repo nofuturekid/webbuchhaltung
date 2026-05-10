@@ -1,6 +1,70 @@
-# WebBuchhaltung — Orchestrator
+# CLAUDE.md - Basic Rules
 
-## Project
+These rules apply to every task in this project unless explicitly overridden.
+Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
+
+## Rule 1 — Think Before Coding
+State assumptions explicitly. If uncertain, ask rather than guess.
+Present multiple interpretations when ambiguity exists.
+Push back when a simpler approach exists.
+Stop when confused. Name what's unclear.
+
+## Rule 2 — Simplicity First
+Minimum code that solves the problem. Nothing speculative.
+No features beyond what was asked. No abstractions for single-use code.
+Test: would a senior engineer say this is overcomplicated? If yes, simplify.
+
+## Rule 3 — Surgical Changes
+Touch only what you must. Clean up only your own mess.
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor what isn't broken. Match existing style.
+
+## Rule 4 — Goal-Driven Execution
+Define success criteria. Loop until verified.
+Don't follow steps. Define success and iterate.
+Strong success criteria let you loop independently.
+
+## Rule 5 — Use the model only for judgment calls
+Use me for: classification, drafting, summarization, extraction.
+Do NOT use me for: routing, retries, deterministic transforms.
+If code can answer, code answers.
+
+## Rule 6 — Token budgets are not advisory
+Per-task: 4,000 tokens. Per-session: 30,000 tokens.
+If approaching budget, summarize and start fresh.
+Surface the breach. Do not silently overrun.
+
+## Rule 7 — Surface conflicts, don't average them
+If two patterns contradict, pick one (more recent / more tested).
+Explain why. Flag the other for cleanup.
+Don't blend conflicting patterns.
+
+## Rule 8 — Read before you write
+Before adding code, read exports, immediate callers, shared utilities.
+"Looks orthogonal" is dangerous. If unsure why code is structured a way, ask.
+
+## Rule 9 — Tests verify intent, not just behavior
+Tests must encode WHY behavior matters, not just WHAT it does.
+A test that can't fail when business logic changes is wrong.
+
+## Rule 10 — Checkpoint after every significant step
+Summarize what was done, what's verified, what's left.
+Don't continue from a state you can't describe back.
+If you lose track, stop and restate.
+
+## Rule 11 — Match the codebase's conventions, even if you disagree
+Conformance > taste inside the codebase.
+If you genuinely think a convention is harmful, surface it. Don't fork silently.
+
+## Rule 12 — Fail loud
+"Completed" is wrong if anything was skipped silently.
+"Tests pass" is wrong if any were skipped.
+Default to surfacing uncertainty, not hiding it.
+
+# Project
+
+## WebBuchhaltung — Orchestrator
+
 German accounting software (Buchhaltungssoftware) targeting small and medium businesses.
 Tax jurisdiction: Germany — HGB, GoBD, UStG, DATEV SKR03/SKR04.
 
@@ -29,8 +93,36 @@ Exceptions (remain German):
 2. Write open tasks to `.claude/state/<agent>-current.md`
 3. For any new architecture decision: create `docs/decisions/YYYY-MM-DD-<title>.md`
 
-## Agent Delegation Rules
-Use the `Agent` tool with the content of `agents/<name>.md` as the prompt.
+## Orchestration — How the Orchestrator Works
+
+The orchestrator (this Claude instance) **plans and coordinates only**.
+It never writes domain code itself. All implementation is delegated to sub-agents.
+
+### Orchestrator responsibilities
+1. Read the plan, break it into domain tasks
+2. Spawn the correct agent(s) with the agent template + task description as prompt
+3. Save each agent's output to `.claude/state/<agent>-current.md`
+4. Read the output, decide next steps, spawn next agent(s)
+5. Gate agents (Security, Tax) must pass before push/merge
+
+### How to spawn an agent
+```python
+# Read the template file, append the specific task, pass as prompt
+Agent(
+    description="Backend Phase 3 Tasks 1-2: DB migration + schemas",
+    prompt=open("agents/backend.md").read() + """
+
+## Your Task
+Branch: feature/backend-phase3-rechnungen
+Worktree: /path/to/worktree
+
+Implement Task 1 (DB migration) and Task 2 (Pydantic schemas) from
+docs/superpowers/plans/2026-05-09-phase3-rechnungen.md.
+Commit after each task. All 66 existing tests must still pass.
+""")
+```
+
+### Agent Delegation Rules
 
 Spawn an agent when work is clearly within one domain and would benefit from
 focused context. Do NOT spawn agents for trivial one-liners or config tweaks.
@@ -47,15 +139,24 @@ focused context. Do NOT spawn agents for trivial one-liners or config tweaks.
 | Import/export formats (DATEV, SEPA, XRechnung) | Data-Exchange | `agents/data-exchange.md` |
 | Pre-merge cross-domain review | Review | `agents/review.md` |
 
+### Parallel vs. sequential spawning
+- **Parallel**: spawn multiple agents in one message when tasks are independent
+  (e.g. Backend-Agent + DevOps-Agent can run simultaneously)
+- **Sequential**: spawn next agent only after the previous one's output is saved
+  (e.g. Database-Agent must finish migration before Backend-Agent writes services)
+
 ## Worktree Strategy
 Use worktrees when: task > 2h AND touches 2+ domains (e.g., backend + frontend).
 
 ```bash
-# Create parallel worktrees
+# Create parallel worktrees OUTSIDE the project root (not inside .claude/)
 git worktree add ../WebBuchhaltung-backend feature/backend-<ticket>
 git worktree add ../WebBuchhaltung-frontend feature/frontend-<ticket>
 
-# When both done: spawn Review-Agent, then merge to develop
+# Spawn Backend-Agent on ../WebBuchhaltung-backend
+# Spawn Frontend-Agent on ../WebBuchhaltung-frontend (parallel)
+
+# When both done: spawn Review-Agent, then open PR to develop
 git worktree remove ../WebBuchhaltung-backend
 git worktree remove ../WebBuchhaltung-frontend
 ```
@@ -118,20 +219,23 @@ Rules:
 
 ## Branch Conventions
 ```
-main              # production-ready, protected
-develop           # integration branch
-feature/<scope>-<ticket>   # feature work
-hotfix/<ticket>   # urgent fix on main base
-release/<version> # release prep
+main              # production-ready, protected — PRs come from develop only
+develop           # integration branch — feature branches merge here first
+feature/<scope>-<ticket>   # feature work → PR to develop
+hotfix/<ticket>   # urgent fix on main base → PR directly to main
+release/<version> # release prep → PR to main
 ```
 
 ## Local Testing — ALWAYS verify in this order
 
-### 1. Unit/integration tests (fast, no Docker)
+### 1. Unit/integration tests (requires PostgreSQL)
 ```bash
-cd backend && uv run pytest tests/ -q
+TEST_DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test" \
+  uv run pytest tests/ -q
 ```
-66 tests, ~13s, SQLite in-memory. Run after every backend change.
+84+ tests, ~15s. Requires a running PostgreSQL instance (use `docker compose up -d db`
+and create the test DB once: `docker compose exec db psql -U postgres -c "CREATE DATABASE webbuchhaltung_test;"`).
+Run after every backend change.
 
 ### 2. Full stack with Docker Compose
 ```bash
@@ -171,6 +275,9 @@ asyncio.run(seed())
 ```
 
 ### 3. Smoke test (end-to-end curl)
+
+Run after every full-stack build to verify the golden path works end-to-end.
+
 ```bash
 # Health
 curl http://localhost:8000/health  # → {"status":"ok"}
@@ -190,9 +297,49 @@ TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
   python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
 
+# Phase 3 — Rechnungen golden path
+CUSTOMER_ID=$(curl -s -X POST "http://localhost:8000/api/v1/customers/" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"Test AG","city":"Berlin","email":"test@example.com"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+INVOICE_ID=$(curl -s -X POST "http://localhost:8000/api/v1/invoices/" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d "{\"customer_id\":\"$CUSTOMER_ID\",\"line_items\":[{\"description\":\"Beratung\",\"quantity\":1,\"unit_price_cents\":10000,\"vat_rate\":0.19,\"position\":1}]}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+curl -s -X POST "http://localhost:8000/api/v1/invoices/$INVOICE_ID/issue" \
+  -H "Authorization: Bearer $TOKEN" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('status:', d['status'], '| booking:', d['booking_id'])"
+
+curl -s -o /tmp/invoice.pdf -w "PDF: HTTP %{http_code}, %{size_download} bytes\n" \
+  "http://localhost:8000/api/v1/invoices/$INVOICE_ID/pdf" \
+  -H "Authorization: Bearer $TOKEN"
+
 # API docs
 open http://localhost:8000/docs
 ```
+
+### 4. Contract test (API schema vs. frontend types)
+
+Run when backend router files change — catches breaking API changes before they
+reach the frontend. Spawn the **Review-Agent** which runs this automatically, or
+run manually:
+
+```bash
+# Generate current OpenAPI schema from running backend
+curl -s http://localhost:8000/openapi.json -o /tmp/openapi-current.json
+
+# Re-generate frontend TypeScript types from it
+cd frontend && npx openapi-typescript /tmp/openapi-current.json -o src/types/api-generated.ts
+
+# Diff against the committed types — any new field is a potential contract gap
+diff src/types/api.ts src/types/api-generated.ts
+```
+
+**When to run:** any time a Pydantic schema or router signature changes.
+**Owner:** Review-Agent checks this automatically before every merge.
+If drift is found: update `frontend/src/types/api.ts` to match — never ignore the diff.
 
 ### Known Docker gotchas
 - Running `uv run pytest` on the host rebuilds `.venv` with the system Python,

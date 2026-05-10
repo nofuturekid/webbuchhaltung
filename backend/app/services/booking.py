@@ -215,6 +215,9 @@ async def reverse_booking(
         tax_amount_cents=original.tax_amount_cents,
         tax_key_code=original.tax_key_code,
         reversal_of_id=original.id,
+        # Fix 3: Propagate invoice_id so both the original and reversal booking
+        # remain traceable to the same source invoice (audit linkage).
+        invoice_id=original.invoice_id,
         created_by=user_id,
     )
     session.add(reversal)
