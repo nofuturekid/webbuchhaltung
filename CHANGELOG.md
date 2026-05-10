@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.5.0] — 2026-05-10
+
+### Added — Phase 5
+
+#### Kontoauszugsimport (Bank Import + Matching)
+- DB migration 0008: `bank_accounts` and `bank_transactions` tables with GoBD
+  audit columns (`created_at`, `updated_at`, `action`, `actor`)
+- MT940 and CSV bank statement import with deduplication by `source_ref`
+  (SELECT-first + INSERT strategy; see ADR-0006)
+- Automatic transaction matching scored by: amount exact match (+0.60),
+  date within ±3 days (+0.30) or ±7 days (+0.15), purpose keyword (+0.10);
+  auto-applied when score ≥ 0.90 (see ADR-0008)
+- Manual match, ignore, and unmatch operations — all GoBD §9 audited
+- Frontend: `BankAccountsPage` with MT940 import dialog; `MatchingView` with
+  auto-match button and per-transaction confidence display
+- 12 new backend API endpoints under `/api/v1/bank-accounts/` and
+  `/api/v1/bank-transactions/`
+
+#### Eingangsrechnungen / Accounts Payable
+- DB migration 0009: `vendors` and `vendor_invoices` tables; SKR03/SKR04
+  accounts payable (1600/1601) backfilled for existing mandants
+- Vendor CRUD with IBAN validation via `schwifty`
+- Vendor invoice lifecycle: draft → posted → paid / cancelled
+- GoBD-compliant posting: `get_next_entry_number`, immutability guards,
+  full audit trail on every state transition
+- SEPA pain.001.003.03 XML batch payment export using stdlib
+  `xml.etree.ElementTree` (see ADR-0007)
+- Document integration: `POST /documents/{id}/confirm` extended with
+  `create_vendor_invoice` flag to create AP invoice directly from a captured
+  document
+- Frontend: `VendorsPage` (CRUD table) and `VendorInvoicesPage` with SEPA
+  export button
+
+#### Erweiterte Berichte (Advanced Reports)
+- Saldenliste (trial balance): opening balance + period movements + closing
+  balance per account
+- Bilanz (balance sheet, HGB §266): Aktiva / Passiva with `balanced: bool`
+  and `imbalance_cents` field; amber imbalance alert in the frontend
+- G+V (income statement): revenue accounts (8xxx / 4xxx) vs. expenses
+- BWA (business performance analysis): 12 monthly columns
+- All four endpoints support `?format=json|csv`; queries are
+  MariaDB-compatible (no PostgreSQL-only syntax)
+- Frontend: four new report pages (Saldenliste, Bilanz, G+V, BWA)
+
+#### Infrastructure
+- Helm chart `helm/webbuchhaltung/` (Chart version 0.5.0): backend and
+  frontend Deployments, Ingress, ConfigMap, Secret, PersistentVolumeClaim
+  for document storage
+- Admin page: audit log viewer filterable by table, action, and date range;
+  system info tab
+- Backend: `GET /api/v1/admin/audit-log` endpoint (mandant-scoped, paginated)
+
+### Fixed
+- GoBD §9: `apply_ignore` and `apply_unmatch` now write audit entries
+  (`bank_matching.py`) — previously these operations left no audit trail
+- Float-rounding in auto-match score threshold: `round(score, 4)` prevents
+  IEEE 754 drift causing scores of 0.8999999… to fall below the 0.90 cutoff
+
+### Tests
+- 185 tests total (+73 from Phase 4 baseline of 112), covering bank import,
+  vendor invoice lifecycle, SEPA export, and all four advanced report endpoints
+
+---
+
 ## Unreleased — Unreleased
 
 ### Phase 4 — Asset Management + LLM Document Capture (2026-05-10)
