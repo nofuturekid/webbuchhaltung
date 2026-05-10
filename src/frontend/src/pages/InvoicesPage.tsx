@@ -85,9 +85,9 @@ export default function InvoicesPage(): JSX.Element {
         <TableHead>
           <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
             <TableCell>Nummer</TableCell>
-            <TableCell>Kunden-ID</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Kunden-ID</TableCell>
             <TableCell>Datum</TableCell>
-            <TableCell>Fällig</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Fällig</TableCell>
             <TableCell>Status</TableCell>
             <TableCell align="right">Brutto</TableCell>
           </TableRow>
@@ -110,9 +110,9 @@ export default function InvoicesPage(): JSX.Element {
                 sx={{ cursor: 'pointer' }}
               >
                 <TableCell>{invoice.invoice_number}</TableCell>
-                <TableCell>{invoice.customer_id}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{invoice.customer_id}</TableCell>
                 <TableCell>{invoice.issue_date ? formatDate(invoice.issue_date) : '—'}</TableCell>
-                <TableCell>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
                 <TableCell>
                   <Chip
                     label={STATUS_LABELS[invoice.status]}

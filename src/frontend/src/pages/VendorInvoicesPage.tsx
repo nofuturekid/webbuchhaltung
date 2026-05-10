@@ -185,10 +185,10 @@ export default function VendorInvoicesPage(): JSX.Element {
           <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
             <TableCell>Lieferant</TableCell>
             <TableCell>Belegnummer</TableCell>
-            <TableCell>Datum</TableCell>
-            <TableCell>Fälligkeit</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Datum</TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Fälligkeit</TableCell>
             <TableCell align="right">Betrag</TableCell>
-            <TableCell align="right">MwSt.</TableCell>
+            <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>MwSt.</TableCell>
             <TableCell>Status</TableCell>
             <TableCell />
           </TableRow>
@@ -207,12 +207,12 @@ export default function VendorInvoicesPage(): JSX.Element {
               <TableRow key={invoice.id} hover>
                 <TableCell>{vendorMap.get(invoice.vendor_id) ?? invoice.vendor_id}</TableCell>
                 <TableCell>{invoice.invoice_number}</TableCell>
-                <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-                <TableCell>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{formatDate(invoice.invoice_date)}</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{invoice.due_date ? formatDate(invoice.due_date) : '—'}</TableCell>
                 <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
                   {formatEuro(invoice.amount_cents)}
                 </TableCell>
-                <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                <TableCell align="right" sx={{ fontFamily: 'monospace', display: { xs: 'none', sm: 'table-cell' } }}>
                   {formatEuro(invoice.vat_amount_cents)}
                 </TableCell>
                 <TableCell>

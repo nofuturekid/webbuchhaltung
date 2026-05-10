@@ -43,11 +43,11 @@ export default function BookingList() {
         <TableRow>
           <TableCell>Nr.</TableCell>
           <TableCell>Datum</TableCell>
-          <TableCell>Beleg</TableCell>
-          <TableCell>Konto</TableCell>
-          <TableCell>Gegenkonto</TableCell>
+          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Beleg</TableCell>
+          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Konto</TableCell>
+          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Gegenkonto</TableCell>
           <TableCell align="right">Betrag</TableCell>
-          <TableCell>Status</TableCell>
+          <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Status</TableCell>
           <TableCell />
         </TableRow>
       </TableHead>
@@ -56,17 +56,17 @@ export default function BookingList() {
           <TableRow key={b.id} hover>
             <TableCell sx={{ fontFamily: 'monospace' }}>{b.entry_number ?? '–'}</TableCell>
             <TableCell>{formatDate(b.date_booking)}</TableCell>
-            <TableCell>{b.document_number ?? '–'}</TableCell>
-            <TableCell sx={{ fontFamily: 'monospace' }}>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{b.document_number ?? '–'}</TableCell>
+            <TableCell sx={{ fontFamily: 'monospace', display: { xs: 'none', sm: 'table-cell' } }}>
               {b.coa_id ? formatAccountNumber(accountMap.get(b.coa_id) ?? '????') : '–'}
             </TableCell>
-            <TableCell sx={{ fontFamily: 'monospace' }}>
+            <TableCell sx={{ fontFamily: 'monospace', display: { xs: 'none', sm: 'table-cell' } }}>
               {b.counter_coa_id ? formatAccountNumber(accountMap.get(b.counter_coa_id) ?? '????') : '–'}
             </TableCell>
             <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
               {formatEuro(b.amount_cents)}
             </TableCell>
-            <TableCell><StatusChip status={b.status} /></TableCell>
+            <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}><StatusChip status={b.status} /></TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', gap: 0 }}>
                 {b.status === 'draft' && (
