@@ -48,10 +48,10 @@ Accounts outside these ranges require explicit justification.
 ## Checks to Run
 ```bash
 # Check for any UPDATE on posted journal entries in changed files
-grep -n "UPDATE.*journal_entries\|\.update\(.*status.*posted" --include="*.py" -r backend/
+grep -n "UPDATE.*journal_entries\|\.update\(.*status.*posted" --include="*.py" -r src/backend/
 
 # Check for DELETE on journal entries
-grep -n "DELETE.*journal_entries\|\.delete\(\|session\.delete" --include="*.py" -r backend/
+grep -n "DELETE.*journal_entries\|\.delete\(\|session\.delete" --include="*.py" -r src/backend/
 ```
 
 ## Blocking Rule

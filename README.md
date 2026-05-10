@@ -85,7 +85,7 @@ API docs: http://localhost:8000/docs
 ### Backend
 
 ```bash
-cd backend
+cd src/backend
 
 # Install dependencies (uv required — https://docs.astral.sh/uv/)
 uv sync
@@ -109,7 +109,7 @@ SECRET_KEY="dev-only-secret" \
 ### Frontend
 
 ```bash
-cd frontend
+cd src/frontend
 
 npm install
 
@@ -126,7 +126,7 @@ npm test -- --run
 ### Database migrations
 
 ```bash
-cd backend
+cd src/backend
 
 # Generate a new migration after model changes
 uv run alembic revision --autogenerate -m "describe_change"
@@ -196,23 +196,24 @@ curl -s -o /tmp/invoice.pdf -w "PDF: HTTP %{http_code}, %{size_download} bytes\n
 
 ```
 webbuchhaltung/
-├── backend/
-│   ├── app/
-│   │   ├── main.py          # FastAPI app factory + routers
-│   │   ├── models/          # SQLAlchemy ORM models
-│   │   ├── schemas/         # Pydantic request/response schemas
-│   │   ├── routers/         # One file per domain
-│   │   ├── services/        # Business logic
-│   │   └── templates/       # Jinja2 PDF templates
-│   ├── alembic/versions/    # Database migrations
-│   ├── seed/                # SKR03/SKR04 account data
-│   └── tests/
-├── frontend/
-│   └── src/
-│       ├── features/        # Domain feature modules
-│       ├── pages/           # Route-level page components
-│       ├── components/      # Shared UI components
-│       └── types/           # TypeScript API types
+├── src/
+│   ├── backend/
+│   │   ├── app/
+│   │   │   ├── main.py          # FastAPI app factory + routers
+│   │   │   ├── models/          # SQLAlchemy ORM models
+│   │   │   ├── schemas/         # Pydantic request/response schemas
+│   │   │   ├── routers/         # One file per domain
+│   │   │   ├── services/        # Business logic
+│   │   │   └── templates/       # Jinja2 PDF templates
+│   │   ├── alembic/versions/    # Database migrations
+│   │   ├── seed/                # SKR03/SKR04 account data
+│   │   └── tests/
+│   └── frontend/
+│       └── src/
+│           ├── features/        # Domain feature modules
+│           ├── pages/           # Route-level page components
+│           ├── components/      # Shared UI components
+│           └── types/           # TypeScript API types
 ├── agents/                  # Claude Code sub-agent templates
 ├── scripts/hooks/           # Pre-commit and gate hooks
 └── docker-compose.yml
@@ -245,11 +246,11 @@ Scopes: `backend` `frontend` `db` `devops` `qa` `security` `tax` `auth` `api`
 
 ```bash
 # Backend (requires PostgreSQL — see Development section above)
-cd backend && TEST_DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test" \
+cd src/backend && TEST_DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test" \
   uv run pytest tests/ -q
 
 # Frontend
-cd frontend && npm test -- --run
+cd src/frontend && npm test -- --run
 ```
 
 ---

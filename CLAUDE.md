@@ -243,8 +243,8 @@ Run after every backend change.
 ### 2. Full stack with Docker Compose
 ```bash
 docker compose up --build -d
-docker compose exec backend uv run alembic upgrade head
 ```
+Migrations run automatically on backend startup via the lifespan hook.
 
 Seed the first admin user (only needed on a fresh database):
 ```bash
@@ -334,7 +334,7 @@ run manually:
 curl -s http://localhost:8000/openapi.json -o /tmp/openapi-current.json
 
 # Re-generate frontend TypeScript types from it
-cd frontend && npx openapi-typescript /tmp/openapi-current.json -o src/types/api-generated.ts
+cd src/frontend && npx openapi-typescript /tmp/openapi-current.json -o src/types/api-generated.ts
 
 # Diff against the committed types — any new field is a potential contract gap
 diff src/types/api.ts src/types/api-generated.ts
@@ -342,7 +342,7 @@ diff src/types/api.ts src/types/api-generated.ts
 
 **When to run:** any time a Pydantic schema or router signature changes.
 **Owner:** Review-Agent checks this automatically before every merge.
-If drift is found: update `frontend/src/types/api.ts` to match — never ignore the diff.
+If drift is found: update `src/frontend/src/types/api.ts` to match — never ignore the diff.
 
 ### Known Docker gotchas
 - Running `uv run pytest` on the host rebuilds `.venv` with the system Python,

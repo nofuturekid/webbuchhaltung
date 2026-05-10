@@ -60,16 +60,16 @@ What changes as a result. What is now harder or easier.
 ### 4. OpenAPI endpoint prose
 For any new FastAPI router added in the current batch:
 ```bash
-grep -n 'summary\|description' backend/app/routers/*.py
+grep -n 'summary\|description' src/backend/app/routers/*.py
 ```
 Every public endpoint should have a `summary=` in its decorator or a one-line docstring.
 Warn (non-blocking) if missing.
 
 ### 5. docker-compose.yml env var coverage
-Every env var accepted by `backend/app/config.py` should appear (at minimum as a comment)
+Every env var accepted by `src/backend/app/config.py` should appear (at minimum as a comment)
 in `docker-compose.yml`. Check for gaps:
 ```bash
-grep -o 'bootstrap_[a-z_]*\|secret_key\|database_url\|cors_origins' backend/app/config.py | sort -u
+grep -o 'bootstrap_[a-z_]*\|secret_key\|database_url\|cors_origins' src/backend/app/config.py | sort -u
 grep -o 'BOOTSTRAP_[A-Z_]*\|SECRET_KEY\|DATABASE_URL\|CORS_ORIGINS' docker-compose.yml | sort -u
 ```
 

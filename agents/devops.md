@@ -22,14 +22,14 @@ The orchestrator has delegated a specific infrastructure task to you.
 # devops/docker/backend.Dockerfile
 FROM python:3.12.3-slim-bookworm AS builder
 WORKDIR /app
-COPY backend/pyproject.toml backend/uv.lock ./
+COPY src/backend/pyproject.toml src/backend/uv.lock ./
 RUN pip install uv && uv sync --frozen --no-dev
 
 FROM python:3.12.3-slim-bookworm AS runtime
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 COPY --from=builder /app/.venv ./.venv
-COPY backend/app ./app
+COPY src/backend/app ./app
 USER appuser
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000

@@ -34,19 +34,19 @@ fi
 
 # Python security scan
 echo "--- Python security scan (bandit) ---"
-if [ -d "backend" ] && command -v bandit &>/dev/null; then
-  bandit -r backend/ -ll --quiet 2>&1 || {
+if [ -d "src/backend" ] && command -v bandit &>/dev/null; then
+  bandit -r src/backend/ -ll --quiet 2>&1 || {
     echo "BLOCKED: bandit found high-severity Python security issues"
     ERRORS=$((ERRORS + 1))
   }
 else
-  echo "WARN: bandit not installed or backend/ not found — skipping"
+  echo "WARN: bandit not installed or src/backend/ not found — skipping"
 fi
 
 # JS dependency audit
 echo "--- JS dependency audit (npm audit) ---"
-if [ -d "frontend" ] && [ -f "frontend/package.json" ] && command -v npm &>/dev/null; then
-  AUDIT_OUT=$(cd frontend && npm audit --audit-level=high --json 2>&1) || true
+if [ -d "src/frontend" ] && [ -f "src/frontend/package.json" ] && command -v npm &>/dev/null; then
+  AUDIT_OUT=$(cd src/frontend && npm audit --audit-level=high --json 2>&1) || true
   echo "$AUDIT_OUT" | python3 -c "
 import sys, json
 try:
@@ -62,7 +62,7 @@ if high > 0:
 print(f'npm audit: no high/critical vulnerabilities')
 " || ERRORS=$((ERRORS + 1))
 else
-  echo "WARN: npm or frontend/package.json not found — skipping JS audit"
+  echo "WARN: npm or src/frontend/package.json not found — skipping JS audit"
 fi
 
 echo ""

@@ -16,7 +16,7 @@ services:
       retries: 5
 
   backend:
-    build: ./backend
+    build: ./src/backend
     ports:
       - "8000:8000"
     environment:
@@ -36,11 +36,11 @@ services:
         condition: service_healthy
     # Development-only volume mount for hot-reload. Remove for production builds.
     volumes:
-      - ./backend:/app
+      - ./src/backend:/app
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
 
   frontend:
-    build: ./frontend
+    build: ./src/frontend
     ports:
       - "3000:80"
     depends_on:

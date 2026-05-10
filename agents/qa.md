@@ -41,13 +41,13 @@ in `CLAUDE.md` ("Local Testing — §4 Contract test"):
 curl -s http://localhost:8000/openapi.json -o /tmp/openapi-current.json
 
 # Diff against committed frontend types
-cd frontend && npx openapi-typescript /tmp/openapi-current.json -o /tmp/api-generated.ts
-diff frontend/src/types/api.ts /tmp/api-generated.ts
+cd src/frontend && npx openapi-typescript /tmp/openapi-current.json -o /tmp/api-generated.ts
+diff src/frontend/src/types/api.ts /tmp/api-generated.ts
 ```
 
-Any field present in the backend schema but absent from `frontend/src/types/api.ts`
+Any field present in the backend schema but absent from `src/frontend/src/types/api.ts`
 is a contract gap — report it as WARNING. Any field renamed or removed is a BLOCKER.
-If drift is found, update `frontend/src/types/api.ts` to match and commit the fix.
+If drift is found, update `src/frontend/src/types/api.ts` to match and commit the fix.
 
 ## Hard Rules
 - All test code, descriptions, and fixture names in English

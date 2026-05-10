@@ -17,7 +17,7 @@ The orchestrator calls you before every merge to develop or main.
 ```bash
 # Find German prose in code files (not UI strings, not legal terms)
 grep -rn "[äöüÄÖÜß]" --include="*.py" --include="*.ts" --include="*.tsx" \
-  --exclude-dir=node_modules backend/ frontend/src/ | grep -v "# noqa"
+  --exclude-dir=node_modules src/backend/ src/frontend/src/ | grep -v "# noqa"
 ```
 Any match that is not a UI string or legal term (HGB, GoBD) is a violation.
 
@@ -34,9 +34,9 @@ done
 If backend router files changed:
 ```bash
 # Generate current OpenAPI schema
-cd backend && python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/current-schema.json
+cd src/backend && python -c "from app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/current-schema.json
 # Compare with frontend's expected types (if openapi-ts was run)
-diff <(cat frontend/src/types/api.ts | head -20) <(echo "check manually")
+diff <(cat src/frontend/src/types/api.ts | head -20) <(echo "check manually")
 ```
 
 ### 4. Database migration check
@@ -50,10 +50,10 @@ git diff --name-only develop..HEAD | grep "app/models/" && \
 ### 5. Test coverage check
 ```bash
 # Backend
-cd backend && pytest --co -q 2>/dev/null | wc -l  # count tests, warn if < 1 per changed file
+cd src/backend && pytest --co -q 2>/dev/null | wc -l  # count tests, warn if < 1 per changed file
 
 # Frontend
-cd frontend && npx vitest run --reporter=verbose 2>/dev/null | tail -5
+cd src/frontend && npx vitest run --reporter=verbose 2>/dev/null | tail -5
 ```
 
 ## Blocking Criteria

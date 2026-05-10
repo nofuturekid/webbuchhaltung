@@ -37,10 +37,10 @@ fi
 
 # TypeScript/TSX files: run tsc
 TS_FILES=$(echo "$MODIFIED_FILES" | grep -E '\.(ts|tsx)$' || true)
-if [ -n "$TS_FILES" ] && [ -f "frontend/tsconfig.json" ]; then
+if [ -n "$TS_FILES" ] && [ -f "src/frontend/tsconfig.json" ]; then
   echo "=== TypeScript type check ==="
   if command -v npx &>/dev/null; then
-    (cd frontend && npx tsc --noEmit 2>&1) || ERRORS=$((ERRORS + 1))
+    (cd src/frontend && npx tsc --noEmit 2>&1) || ERRORS=$((ERRORS + 1))
   else
     echo "WARN: npx not installed — skipping TypeScript check"
   fi

@@ -14,13 +14,13 @@ Run these commands and include their output in your report:
 
 ```bash
 # Python security linting (medium+ severity)
-bandit -r backend/ -ll --format txt 2>&1 | head -50
+bandit -r src/backend/ -ll --format txt 2>&1 | head -50
 
 # Secrets scan
 gitleaks detect --source . --no-git 2>&1 | head -30
 
 # JS/TS dependency vulnerabilities (if frontend exists)
-cd frontend && npm audit --audit-level=high 2>&1 | head -30
+cd src/frontend && npm audit --audit-level=high 2>&1 | head -30
 
 # Container scan (if Dockerfile exists)
 trivy fs --severity HIGH,CRITICAL . 2>&1 | head -30

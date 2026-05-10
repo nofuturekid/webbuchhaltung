@@ -2,6 +2,8 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from alembic import command as alembic_command  # type: ignore[attr-defined]
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
@@ -68,8 +70,14 @@ async def _run_env_bootstrap() -> None:
             logger.info("Bootstrap skipped — concurrent bootstrap detected")
 
 
+def _run_migrations() -> None:
+    cfg = AlembicConfig("alembic.ini")
+    alembic_command.upgrade(cfg, "head")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    _run_migrations()
     await _run_env_bootstrap()
     yield
 
