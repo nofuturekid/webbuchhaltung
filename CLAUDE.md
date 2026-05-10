@@ -296,7 +296,7 @@ TOKEN=$(curl -s -X POST -H "Authorization: Bearer $TOKEN1" \
   "http://localhost:8000/api/v1/mandants/<MANDANT_ID>/switch" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# Verify accounts seeded (should return ~90 SKR03 accounts)
+# Verify accounts seeded (should return 23 SKR03 accounts)
 curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/accounts | \
   python3 -c "import sys,json; a=json.load(sys.stdin); print(len(a), 'accounts')"
 
@@ -345,9 +345,12 @@ diff src/types/api.ts src/types/api-generated.ts
 If drift is found: update `src/frontend/src/types/api.ts` to match — never ignore the diff.
 
 ### Known Docker gotchas
-- Running `uv run pytest` on the host rebuilds `.venv` with the system Python,
-  which the Docker volume mount then exposes inside the container. This makes
-  uvicorn's watchfiles hang scanning thousands of venv files.
-  Fix: `--reload-dir app` in docker-compose.yml (already set).
+- The backend container uses `UV_PROJECT_ENVIRONMENT=/opt/venv` (set in Dockerfile).
+  This keeps the container venv outside `/app`, so the dev volume mount
+  (`./src/backend:/app`) can never overwrite it or create a root-owned `.venv` on
+  the host. If you ever see permission errors on `.venv`, the Dockerfile was likely
+  reverted — check that `UV_PROJECT_ENVIRONMENT=/opt/venv` is still set.
+- `--reload-dir app` in docker-compose.yml prevents watchfiles from scanning the
+  host-side `.venv` (which would cause it to hang on thousands of files).
 - `get_db` must commit after yield — without it writes are rolled back on session
   close. Tests pass anyway because they use savepoint sessions.

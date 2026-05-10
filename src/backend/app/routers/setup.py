@@ -34,7 +34,7 @@ class SetupStatusResponse(BaseModel):
     needs_setup: bool
 
 
-@router.get("/status", response_model=SetupStatusResponse)
+@router.get("/status", response_model=SetupStatusResponse, summary="Check setup status")
 async def get_setup_status(
     db: AsyncSession = Depends(get_db),
 ) -> SetupStatusResponse:
@@ -43,7 +43,12 @@ async def get_setup_status(
     return SetupStatusResponse(needs_setup=needs)
 
 
-@router.post("", response_model=SetupResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "",
+    response_model=SetupResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Bootstrap first admin",
+)
 async def post_setup(
     body: SetupRequest,
     db: AsyncSession = Depends(get_db),

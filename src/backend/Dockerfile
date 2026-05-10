@@ -20,9 +20,12 @@ COPY --from=ghcr.io/astral-sh/uv:0.6.14 /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 
 # Install production dependencies only, using the exact locked versions.
+# UV_PROJECT_ENVIRONMENT puts the venv outside /app so the dev volume mount
+# (./src/backend:/app) cannot clobber it and force a root-owned rebuild on host.
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 RUN uv sync --frozen --no-dev
 
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . .
 

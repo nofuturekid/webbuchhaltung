@@ -22,5 +22,9 @@ class Settings(BaseSettings):
     bootstrap_mandant_name: str = "Meine Firma"
     bootstrap_skr_variant: str = "skr03"
 
+    # LLM document extraction (Phase 4)
+    anthropic_api_key: str | None = None
+    storage_root: str = "/tmp/webbuchhaltung-docs"
+
 
 settings = Settings()

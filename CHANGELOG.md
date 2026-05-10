@@ -2,6 +2,51 @@
 
 ## Unreleased — Unreleased
 
+### Phase 4 — Asset Management + LLM Document Capture (2026-05-10)
+
+#### Features
+
+- **feat(backend):** Asset management (Anlagenverzeichnis) — HGB §266 fixed assets
+  with linear depreciation, GoBD-compliant booking automation, disposal bookings
+  (SKR03+SKR04 accounts 2680/4855), immutability guards for posted schedules
+- **feat(backend):** LLM document capture (Belegerfassung) — upload PDF/image,
+  Claude API extracts structured data (vendor, date, amount, account suggestions),
+  user confirms → creates GoBD-compliant Buchungssatz via existing booking pipeline
+- **feat(frontend):** Asset management UI (AssetsPage) — data table with
+  depreciation schedule modal and disposal dialog
+- **feat(frontend):** Document capture UI (DocumentsPage) — drag-and-drop upload
+  dropzone, extraction review panel with file preview (PDF iframe / image) and
+  editable confirmation form
+
+#### Bug Fixes
+
+- **fix(backend):** GoBD audit trail fix in `reject_document` — captured
+  `prior_status` before mutation so the audit record reflects the correct
+  previous state (GoBD §9)
+- **fix(backend):** JSON serialization of `document_date` in `extracted_json` —
+  use `model_dump(mode="json")` so `date` objects serialise to ISO strings
+  rather than raising `TypeError`
+
+#### Testing
+
+- **test(qa):** 20 new tests (11 asset + 9 document capture), total now 112
+
+#### Environment Variables (production)
+
+- `ANTHROPIC_API_KEY` — required for LLM document extraction (`process_document`
+  endpoint). Without it, document processing raises `LLMExtractionError` (502).
+- `STORAGE_ROOT` — filesystem path for uploaded documents
+  (default: `/tmp/webbuchhaltung-docs`). Mount a named volume in production to
+  avoid data loss on container restart.
+
+#### Known Gap
+
+- SKR03 test seed is missing accounts 4855 (Verluste aus Anlagenabgang) and
+  2680 (Erträge aus Anlagenabgang) in the fixture data used by disposal tests.
+  Full disposal-path integration testing is deferred to the next cycle.
+
+---
+
 ### Bug Fixes
 
 - Resolve cross-file consistency issues in agent templates ([`bdfba73`])
@@ -108,6 +153,14 @@
 
 - Update README — setup wizard as primary onboarding path ([`3306fc8`])
 
+- Generate CHANGELOG, add ADRs, update README features ([`111d37c`])
+
+- Update project status after Docs-Agent run ([`7505e3d`])
+
+- Update project status after housekeeping ([`039ae6d`])
+
+- Number ADRs, split README into DEVELOPMENT + CONTRIBUTING ([`28534fe`])
+
 
 ### Features
 
@@ -185,6 +238,11 @@
 - Add gitignore, memory structure, and required directories ([`3da4840`])
 
 - Fix gitignore duplicates, add missing patterns, clarify status ([`7344ab0`])
+
+
+### Refactoring
+
+- Move backend/ and frontend/ under src/ ([`b99592e`])
 
 
 ### Testing

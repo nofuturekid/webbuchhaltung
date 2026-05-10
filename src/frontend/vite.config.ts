@@ -8,4 +8,16 @@ export default defineConfig({
       '/api': 'http://localhost:8000',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-misc': ['axios', 'zustand', 'react-hook-form', 'zod'],
+        },
+      },
+    },
+  },
 })

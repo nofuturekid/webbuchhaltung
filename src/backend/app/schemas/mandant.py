@@ -28,6 +28,8 @@ class MandantUpdate(BaseModel):
     datev_beraternummer: str | None = None
     datev_mandantennummer: str | None = None
     fiscal_year_start: int | None = None
+    email_salutation: str | None = None
+    email_closing: str | None = None
 
     @field_validator("fiscal_year_start")
     @classmethod
@@ -49,3 +51,5 @@ class MandantResponse(BaseModel):
     fiscal_year_start: int
     skr_variant: str
     is_active: bool
+    email_salutation: str | None
+    email_closing: str | None

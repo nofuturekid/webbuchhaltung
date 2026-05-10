@@ -56,10 +56,12 @@ def send_invoice_email(
     if mandant.smtp_password:
         smtp_password = decrypt_smtp_password(mandant.smtp_password, secret_key)
 
+    salutation = mandant.email_salutation or "Sehr geehrte Damen und Herren,"
+    closing = mandant.email_closing or "Mit freundlichen Grüßen"
     body = (
-        f"Sehr geehrte Damen und Herren,\n\n"
+        f"{salutation}\n\n"
         f"anbei erhalten Sie Rechnung {invoice.invoice_number} im Anhang.\n\n"
-        f"Mit freundlichen Grüßen\n{mandant.name}"
+        f"{closing}\n{mandant.name}"
     )
 
     sender_name = mandant.smtp_from_name or mandant.name

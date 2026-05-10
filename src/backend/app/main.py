@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -23,6 +24,8 @@ from app.routers import invoice_template as invoice_template_router
 from app.routers import invoices as invoices_router
 from app.routers import reports as reports_router
 from app.routers import tax_keys as tax_keys_router
+from app.routers import assets as assets_router
+from app.routers import documents as documents_router
 from app.routers import setup as setup_router
 
 logger = logging.getLogger(__name__)
@@ -77,7 +80,7 @@ def _run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    _run_migrations()
+    await asyncio.to_thread(_run_migrations)
     await _run_env_bootstrap()
     yield
 
@@ -107,6 +110,8 @@ app.include_router(datev_router.router, prefix="/api/v1")
 app.include_router(customers_router.router, prefix="/api/v1")
 app.include_router(invoices_router.router, prefix="/api/v1")
 app.include_router(invoice_template_router.router, prefix="/api/v1")
+app.include_router(assets_router.router, prefix="/api/v1")
+app.include_router(documents_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
