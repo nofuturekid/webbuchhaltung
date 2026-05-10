@@ -233,7 +233,61 @@ async def test_list_invoices_returns_200(client, db_session):
         )
     resp = await client.get("/api/v1/invoices/", headers=headers)
     assert resp.status_code == 200
-    assert len(resp.json()) == 2
+    body = resp.json()
+    assert "items" in body
+    assert "total" in body
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+
+
+async def test_list_invoices_pagination(client, db_session):
+    """Create 3 invoices, request page 1 page_size 2 — expect 2 items and total=3."""
+    headers, user, mandant, customer = await _setup(db_session)
+    for _ in range(3):
+        await client.post(
+            "/api/v1/invoices/",
+            json=_invoice_payload(customer.id),
+            headers=headers,
+        )
+    resp = await client.get("/api/v1/invoices/?page=1&page_size=2", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 3, "total must reflect all matching invoices"
+    assert len(body["items"]) == 2, "page_size=2 must return exactly 2 items"
+    assert body["page"] == 1
+    assert body["page_size"] == 2
+
+
+async def test_list_invoices_search(client, db_session):
+    """Text search by invoice_number prefix must return only matching invoices."""
+    headers, user, mandant, customer = await _setup(db_session)
+    # Create one invoice so we know its invoice_number
+    create_resp = await client.post(
+        "/api/v1/invoices/",
+        json=_invoice_payload(customer.id),
+        headers=headers,
+    )
+    assert create_resp.status_code == 201
+    invoice_number = create_resp.json()["invoice_number"]
+
+    # Create a second invoice (different number)
+    await client.post(
+        "/api/v1/invoices/",
+        json=_invoice_payload(customer.id),
+        headers=headers,
+    )
+
+    # Search by the exact invoice number — should return 1 item
+    resp = await client.get(f"/api/v1/invoices/?q={invoice_number}", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1, "Exact invoice_number search must return 1 result"
+    assert body["items"][0]["invoice_number"] == invoice_number
+
+    # Nonsense search — must return 0 results
+    resp_empty = await client.get("/api/v1/invoices/?q=XXXXNOTEXIST", headers=headers)
+    assert resp_empty.status_code == 200
+    assert resp_empty.json()["total"] == 0
 
 
 async def test_mandant_isolation_invoices(client, db_session):
