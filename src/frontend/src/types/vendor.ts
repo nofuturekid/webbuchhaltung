@@ -32,6 +32,13 @@ export type VendorInvoice = {
   notes: string | null
 }
 
+export type VendorInvoiceListResponse = {
+  items: VendorInvoice[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export type VendorInvoiceCreate = {
   vendor_id: string
   invoice_number: string

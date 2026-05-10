@@ -6,6 +6,7 @@ import type {
   VendorUpdate,
   VendorInvoice,
   VendorInvoiceCreate,
+  VendorInvoiceListResponse,
   PostInvoiceRequest,
   SepaExportRequest,
 } from '../../types/vendor'
@@ -53,17 +54,19 @@ export type VendorInvoiceFilters = {
   due_to?: string
 }
 
-export function useVendorInvoices(filters?: VendorInvoiceFilters) {
-  return useQuery<VendorInvoice[]>({
-    queryKey: [...VENDOR_INVOICES_KEY, filters],
+export function useVendorInvoices(filters?: VendorInvoiceFilters, page = 1, pageSize = 50) {
+  return useQuery<VendorInvoiceListResponse>({
+    queryKey: [...VENDOR_INVOICES_KEY, filters, page, pageSize],
     queryFn: () =>
       api
-        .get<VendorInvoice[]>('/vendor-invoices/', {
+        .get<VendorInvoiceListResponse>('/vendor-invoices/', {
           params: {
             ...(filters?.status ? { status: filters.status } : {}),
             ...(filters?.vendor_id ? { vendor_id: filters.vendor_id } : {}),
             ...(filters?.due_from ? { due_from: filters.due_from } : {}),
             ...(filters?.due_to ? { due_to: filters.due_to } : {}),
+            page,
+            page_size: pageSize,
           },
         })
         .then((r) => r.data),
@@ -110,12 +113,19 @@ export function useCancelVendorInvoice() {
 export function useOpenPayables(year: number) {
   return useQuery<VendorInvoice[]>({
     queryKey: ['vendor-invoices', 'open-payables', year],
-    queryFn: () =>
-      api
-        .get<VendorInvoice[]>('/vendor-invoices/', {
-          params: { status: 'posted', due_from: `${year}-01-01`, due_to: `${year}-12-31` },
-        })
-        .then((r) => r.data),
+    queryFn: async () => {
+      const { data } = await api.get('/vendor-invoices/', {
+        params: { status: 'posted', due_from: `${year}-01-01`, due_to: `${year}-12-31`, page_size: 1000 },
+      })
+      // Handle either plain array or paginated { items, total } response
+      const raw: unknown = data
+      if (Array.isArray(raw)) return raw as VendorInvoice[]
+      if (raw !== null && typeof raw === 'object' && 'items' in raw) {
+        const paginated = raw as { items?: VendorInvoice[] }
+        return paginated.items ?? []
+      }
+      return []
+    },
   })
 }
 

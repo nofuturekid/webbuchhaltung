@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../../lib/api'
-import type { Invoice, InvoiceCreate, InvoiceListItem } from '../../types/invoice'
+import type { Invoice, InvoiceCreate, InvoiceListItem, InvoiceListResponse } from '../../types/invoice'
 
 interface InvoiceFilters {
   status_filter?: string
   customer_id?: string
   date_from?: string
   date_to?: string
+  q?: string
 }
 
-export function useInvoices(filters: InvoiceFilters = {}) {
-  return useQuery<InvoiceListItem[]>({
-    queryKey: ['invoices', filters],
+export function useInvoices(filters: InvoiceFilters = {}, page = 1, pageSize = 50) {
+  return useQuery<InvoiceListResponse>({
+    queryKey: ['invoices', filters, page, pageSize],
     queryFn: async () => {
-      const { data } = await api.get('/invoices', { params: filters })
+      const { data } = await api.get('/invoices', {
+        params: { ...filters, page, page_size: pageSize },
+      })
       return data
     },
   })

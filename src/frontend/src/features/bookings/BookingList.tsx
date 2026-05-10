@@ -10,6 +10,12 @@ import { useBookings, usePostBooking, useReverseBooking, useDeleteBooking } from
 import { useAccounts } from '../accounts/api'
 import type { BookingResponse } from '../../types/api'
 
+export type BookingListProps = {
+  page?: number
+  pageSize?: number
+  q?: string
+}
+
 const STATUS_COLORS: Record<string, 'default' | 'warning' | 'success' | 'error'> = {
   draft: 'warning',
   posted: 'success',
@@ -25,8 +31,8 @@ function StatusChip({ status }: { status: string }) {
   return <Chip label={labels[status] ?? status} color={STATUS_COLORS[status] ?? 'default'} size="small" />
 }
 
-export default function BookingList() {
-  const { data, isLoading } = useBookings()
+export default function BookingList({ page = 1, pageSize = 50, q }: BookingListProps) {
+  const { data, isLoading } = useBookings(page, pageSize, { q })
   const { data: accounts = [] } = useAccounts()
   const post = usePostBooking()
   const reverse = useReverseBooking()
