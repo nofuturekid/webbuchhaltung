@@ -106,6 +106,19 @@ export function useCancelVendorInvoice() {
   })
 }
 
+// Returns vendor invoices in 'posted' state (unpaid AP) for the given year
+export function useOpenPayables(year: number) {
+  return useQuery<VendorInvoice[]>({
+    queryKey: ['vendor-invoices', 'open-payables', year],
+    queryFn: () =>
+      api
+        .get<VendorInvoice[]>('/vendor-invoices/', {
+          params: { status: 'posted', due_from: `${year}-01-01`, due_to: `${year}-12-31` },
+        })
+        .then((r) => r.data),
+  })
+}
+
 export function useSepaExport() {
   return useMutation({
     mutationFn: async (payload: SepaExportRequest): Promise<void> => {

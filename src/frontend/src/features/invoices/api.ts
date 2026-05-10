@@ -102,6 +102,28 @@ export function useSendInvoiceEmail() {
   })
 }
 
+// Returns all issued invoices (unpaid) — drives Offene Forderungen widget
+export function useOpenReceivables(year: number) {
+  const dateFrom = `${year}-01-01`
+  const dateTo = `${year}-12-31`
+  return useQuery<InvoiceListItem[]>({
+    queryKey: ['invoices', 'open-receivables', year],
+    queryFn: async () => {
+      const { data } = await api.get('/invoices', {
+        params: { status_filter: 'issued', date_from: dateFrom, date_to: dateTo },
+      })
+      // Handle either plain array or paginated { items, total } response
+      const raw: unknown = data
+      if (Array.isArray(raw)) return raw as InvoiceListItem[]
+      if (raw !== null && typeof raw === 'object' && 'items' in raw) {
+        const paginated = raw as { items?: InvoiceListItem[] }
+        return paginated.items ?? []
+      }
+      return []
+    },
+  })
+}
+
 export async function downloadInvoicePdf(id: string, invoiceNumber: string): Promise<void> {
   const response = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' })
   const url = URL.createObjectURL(response.data as Blob)
