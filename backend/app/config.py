@@ -14,5 +14,13 @@ class Settings(BaseSettings):
     # Example: CORS_ORIGINS=http://localhost:3000,https://app.example.com
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # First-admin bootstrap — set via environment variables or .env file.
+    # When both email and password are provided and no users exist, the app
+    # will automatically create the first admin user on startup.
+    bootstrap_admin_email: str | None = None
+    bootstrap_admin_password: str | None = None
+    bootstrap_mandant_name: str = "Meine Firma"
+    bootstrap_skr_variant: str = "skr03"
+
 
 settings = Settings()
