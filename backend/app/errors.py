@@ -58,6 +58,29 @@ class AccountNotEditableError(AppError):
         )
 
 
+class InvoiceImmutableError(AppError):
+    status_code = 403
+    code = "INVOICE_IMMUTABLE"
+
+    def __init__(self) -> None:
+        super().__init__("Issued or cancelled invoices are immutable (GoBD §14).")
+
+
+class InvalidInvoiceStateError(AppError):
+    status_code = 400
+    code = "INVALID_INVOICE_STATE"
+
+
+class EmailSendError(AppError):
+    status_code = 502
+    code = "EMAIL_SEND_FAILED"
+
+
+class AccountLookupError(AppError):
+    status_code = 500
+    code = "ACCOUNT_LOOKUP_FAILED"
+
+
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,

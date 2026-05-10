@@ -109,6 +109,10 @@ class Booking(Base, TimestampMixin):
     contact_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True)
     )  # FK → contacts (Phase 3)
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("invoices.id", use_alter=True, name="fk_bookings_invoice_id"),
+    )
 
     # bank type only (NULL for entry)
     bank_account_id: Mapped[uuid.UUID | None] = mapped_column(

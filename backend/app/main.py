@@ -8,7 +8,10 @@ from app.routers import auth as auth_router
 from app.routers import bookings as bookings_router
 from app.routers import mandants as mandants_router
 from app.routers import periods as periods_router
+from app.routers import customers as customers_router
 from app.routers import datev as datev_router
+from app.routers import invoice_template as invoice_template_router
+from app.routers import invoices as invoices_router
 from app.routers import reports as reports_router
 from app.routers import tax_keys as tax_keys_router
 
@@ -33,6 +36,9 @@ app.include_router(bookings_router.router, prefix="/api/v1")
 app.include_router(periods_router.router, prefix="/api/v1")
 app.include_router(reports_router.router, prefix="/api/v1")
 app.include_router(datev_router.router, prefix="/api/v1")
+app.include_router(customers_router.router, prefix="/api/v1")
+app.include_router(invoices_router.router, prefix="/api/v1")
+app.include_router(invoice_template_router.router, prefix="/api/v1")
 
 
 @app.get("/health")
