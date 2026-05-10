@@ -1,7 +1,7 @@
 # Project Status
 
 **Last updated:** 2026-05-10
-**Phase:** Phase 3 implementation complete — PRs ready to open
+**Phase:** Phase 3 complete — all PRs merged to main
 
 ## Done
 - Design spec: docs/superpowers/specs/2026-05-08-claude-agent-team-setup-design.md
@@ -35,24 +35,48 @@
   - DATEV export: blob download
   - Dashboard: live EÜR summary + booking counts
 
-- **Phase 3 Rechnungen (PR pending):**
-  - Backend branch: `feature/backend-phase3-rechnungen` (commit e80e0ee)
-    All 16 tasks done: Customer CRUD, invoice sequences (SELECT FOR UPDATE + year-reset),
-    invoice CRUD, issue/cancel+booking (per VAT bucket), PDF (weasyprint+Jinja2),
-    email (smtplib+Fernet), template+sequence endpoints, Alembic migration 0003
-    84 backend tests pass
-  - Frontend branch: `feature/frontend-phase3-rechnungen` (commit d3abf7d)
-    TypeScript types, TanStack Query hooks, CustomersPage, InvoicesPage,
-    InvoiceFormDialog (Drawer+LineItemsTable+totals), InvoiceDetailPage,
-    MandantSettingsPage (SMTP+Bankverbindung tabs), routing+nav
-    19 frontend tests pass (4 new lineItemCalc tests)
+- **Phase 3 Rechnungen (PRs #4+#5 merged to main):**
+  - Backend: Customer CRUD, invoice sequences, CRUD, issue/cancel+booking (per VAT bucket),
+    PDF (weasyprint+Jinja2), email (smtplib+Fernet), template+sequence endpoints, migration 0003
+  - Frontend: TypeScript types, TanStack Query hooks, CustomersPage, InvoicesPage,
+    InvoiceFormDialog, InvoiceDetailPage, MandantSettingsPage, routing+nav
+  - 86 backend tests pass, 19 frontend tests pass
+
+- **Phase 3 GoBD compliance + backfill (PR #6, develop → main):**
+  - GoBD §9 fix: `invoice_booking.py` now calls `write_audit` after each posting
+  - GoBD §14 fix: period lock check before posting in `create_issue_bookings`
+  - Audit linkage: `reverse_booking` propagates `invoice_id` to reversal entry
+  - QA: cancel test strengthened (§14 assertions), 7%/0% VAT routing tests added
+  - SKR03 seed: account 8200 added (Steuerfreie Erlöse Inland)
+  - Migration 0004: idempotent backfill of account 8200 for existing mandants
+  - Tax-Agent: COMPLIANT (all §9/§14 warnings resolved)
+  - Review-Agent: APPROVED (86+19 tests pass, OpenAPI contract clean)
+
+- **First-admin bootstrap (on main, 3 commits):**
+  - Env-var path: set `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD` in Docker Compose/.env
+    → backend lifespan hook seeds admin+mandant on first startup (idempotent, race-safe)
+  - UI path: fresh install → login page shows "Ersteinrichtung starten" → `/setup` wizard
+    → RHF+Zod form (email, password, Firmenname, SKR-Variante) → auto-login on success
+  - `GET /api/v1/setup/status` + `POST /api/v1/setup` (self-disabling after first user)
+  - 92 backend tests pass, 19 frontend tests pass, TypeScript clean
+
+- **Docs-Agent run (2026-05-10, commit 111d37c):**
+  - CHANGELOG.md generated via git cliff (all unreleased commits)
+  - README.md: added "First-run setup wizard" to Features list
+  - 3 ADRs created in docs/decisions/:
+    - 2026-05-10-first-admin-bootstrap-pattern.md
+    - 2026-05-10-self-disabling-setup-endpoint.md
+    - 2026-05-10-agent-pipeline-order.md
+  - Setup router endpoints have docstrings — no action needed
+  - docker-compose.yml covers all bootstrap/secret vars as comments
 
 ## Open
-- Open PR: `feature/backend-phase3-rechnungen → main`
-- Open PR: `feature/frontend-phase3-rechnungen → main` (after backend merged)
-- Full-stack smoke test (Docker Compose build + alembic upgrade + end-to-end)
+- **Production**: run `alembic upgrade head` to apply migration 0004 (account 8200 backfill)
+- Full-stack smoke test (Docker Compose build — both bootstrap paths)
 - Follow-up: code-split bundle (currently 670 KB) with dynamic import()
-- Follow-up: backend test command needs TEST_DATABASE_URL env var inside Docker container
+- Follow-up: "Mit freundlichen Grüßen" in invoice_email.py could be configurable per mandant
+- [NON-BLOCKING] docker-compose.yml does not document CORS_ORIGINS, ACCESS_TOKEN_EXPIRE_MINUTES,
+  REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM — these have safe defaults and are low-risk
 
 ## Key Decisions
 - See memory/project_decisions.md
@@ -78,4 +102,27 @@
 
 
 
-<!-- session-end: 2026-05-09 20:16 -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- session-end: 2026-05-10 16:14 -->
