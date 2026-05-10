@@ -14,6 +14,7 @@ Tax jurisdiction: Germany — HGB, GoBD, UStG, DATEV SKR03/SKR04.
 - **DATEV export** — EXTF v700 format for tax adviser handoff
 - **Invoicing** — customer management, outbound invoices with PDF generation and email delivery
 - **Audit trail** — every posting transition is logged (GoBD §9)
+- **First-run setup wizard** — UI wizard or env-var headless bootstrap for zero-touch installs
 
 ## Stack
 
