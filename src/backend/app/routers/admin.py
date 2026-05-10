@@ -1,14 +1,16 @@
 import uuid
-from typing import Literal
+from datetime import date, datetime, timezone
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_mandant_id
 from app.errors import ForbiddenError, NotFoundError
+from app.models.period import AuditLog
 from app.models.user import User, UserMandant
 from app.schemas.auth import UserResponse
 from app.services.auth import hash_password
@@ -127,3 +129,67 @@ async def assign_user_to_mandant(
     session.add(link)
     await session.flush()
     return {"message": "User assigned."}
+
+
+@router.get("/audit-log")
+async def get_audit_log(
+    table: str | None = Query(default=None),
+    action: str | None = Query(default=None),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    mandant_id: uuid.UUID = Depends(get_mandant_id),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    filters = [AuditLog.mandant_id == mandant_id]
+    if table:
+        filters.append(AuditLog.table_name == table)
+    if action:
+        filters.append(AuditLog.action == action)
+    if date_from:
+        filters.append(
+            AuditLog.changed_at
+            >= datetime(
+                date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc
+            )
+        )
+    if date_to:
+        filters.append(
+            AuditLog.changed_at
+            < datetime(
+                date_to.year, date_to.month, date_to.day + 1, tzinfo=timezone.utc
+            )
+        )
+
+    where_clause = and_(*filters)
+
+    total_result = await session.execute(
+        select(func.count()).select_from(AuditLog).where(where_clause)
+    )
+    total: int = total_result.scalar_one()
+
+    rows_result = await session.execute(
+        select(AuditLog)
+        .where(where_clause)
+        .order_by(AuditLog.changed_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    rows = rows_result.scalars().all()
+
+    items = [
+        {
+            "id": str(row.id),
+            "table_name": row.table_name,
+            "record_id": str(row.record_id),
+            "action": row.action,
+            "change_summary": row.change_summary,
+            "changed_at": row.changed_at.isoformat(),
+            "user_id": str(row.user_id) if row.user_id else None,
+            "mandant_id": str(row.mandant_id) if row.mandant_id else None,
+        }
+        for row in rows
+    ]
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
