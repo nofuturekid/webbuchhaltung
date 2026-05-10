@@ -9,11 +9,45 @@ The orchestrator has delegated a specific testing task to you.
 - Playwright tests for E2E flows
 - Test data fixtures (realistic SKR03 journal entries and business scenarios)
 - Coverage reporting and gap analysis
+- **Smoke tests** — Docker Compose golden path verification after every feature implementation
 
 ## Coverage Targets
 - Backend: ≥ 80% line coverage
 - Frontend: ≥ 70% line coverage
 - Critical paths (VAT calculation, journal entry posting): 100%
+
+## Smoke Test Responsibility
+
+After every significant backend or full-stack feature, run the smoke test golden path
+documented in the root `CLAUDE.md` ("Local Testing — §3 Smoke test"). This includes:
+
+1. Verify `GET /health` → `{"status":"ok"}` and frontend HTTP 200
+2. For bootstrap feature: verify `GET /api/v1/setup/status`, test `POST /api/v1/setup`,
+   confirm self-disabling (second POST returns 404)
+3. Login → mandant switch → verify chart of accounts
+4. For invoice features: create customer → create invoice → issue → PDF download
+5. Verify all bookings in journal have correct status and amounts
+
+Run smoke tests against the live Docker Compose stack (`docker compose up --build -d`).
+Report each check as ✅ pass or ❌ fail with HTTP status code and response excerpt.
+
+## Contract Test Responsibility
+
+After every backend router or schema change, run the API contract check documented
+in `CLAUDE.md` ("Local Testing — §4 Contract test"):
+
+```bash
+# Generate current OpenAPI schema from the running backend
+curl -s http://localhost:8000/openapi.json -o /tmp/openapi-current.json
+
+# Diff against committed frontend types
+cd frontend && npx openapi-typescript /tmp/openapi-current.json -o /tmp/api-generated.ts
+diff frontend/src/types/api.ts /tmp/api-generated.ts
+```
+
+Any field present in the backend schema but absent from `frontend/src/types/api.ts`
+is a contract gap — report it as WARNING. Any field renamed or removed is a BLOCKER.
+If drift is found, update `frontend/src/types/api.ts` to match and commit the fix.
 
 ## Hard Rules
 - All test code, descriptions, and fixture names in English

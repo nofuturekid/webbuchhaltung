@@ -103,7 +103,8 @@ It never writes domain code itself. All implementation is delegated to sub-agent
 2. Spawn the correct agent(s) with the agent template + task description as prompt
 3. Save each agent's output to `.claude/state/<agent>-current.md`
 4. Read the output, decide next steps, spawn next agent(s)
-5. Gate agents (Security, Tax) must pass before push/merge
+5. **After every implementation**: spawn QA-Agent to run smoke test + contract test
+6. Gate agents (Security, Tax) must pass before push/merge
 
 ### How to spawn an agent
 ```python
@@ -133,7 +134,7 @@ focused context. Do NOT spawn agents for trivial one-liners or config tweaks.
 | React components, hooks, UI, state | Frontend | `agents/frontend.md` |
 | Schema changes, migrations, SKR03 logic | Database | `agents/database.md` |
 | Docker, Kubernetes, CI/CD pipelines | DevOps | `agents/devops.md` |
-| Writing tests, coverage, test data | QA | `agents/qa.md` |
+| Tests, coverage, smoke tests, API contract checks | QA | `agents/qa.md` |
 | Security review, vulnerability scan | Security | `agents/security.md` |
 | Accounting logic, GoBD compliance check | Tax | `agents/tax.md` |
 | Import/export formats (DATEV, SEPA, XRechnung) | Data-Exchange | `agents/data-exchange.md` |
