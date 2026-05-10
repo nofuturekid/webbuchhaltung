@@ -13,6 +13,8 @@ Tax jurisdiction: Germany — HGB, GoBD, UStG, DATEV SKR03/SKR04.
 - **Reports** — EÜR (Einnahmen-Überschuss-Rechnung), account statements
 - **DATEV export** — EXTF v700 format for tax adviser handoff
 - **Invoicing** — customer management, outbound invoices with PDF generation and email delivery
+- **Asset management** — Anlagenverzeichnis with linear depreciation, disposal bookings (HGB §266)
+- **Document capture** — upload receipts, Claude AI extracts data, user confirms → Buchungssatz
 - **Audit trail** — every posting transition is logged (GoBD §9)
 - **First-run setup wizard** — UI wizard or env-var headless bootstrap for zero-touch installs
 
@@ -24,6 +26,7 @@ Tax jurisdiction: Germany — HGB, GoBD, UStG, DATEV SKR03/SKR04.
 | Frontend | React 18, TypeScript 5, MUI v6, TanStack Query v5 |
 | Database | PostgreSQL 16 (primary) · MariaDB 10.11 / MySQL 8 (supported) |
 | PDF | WeasyPrint 62 via Jinja2 templates |
+| LLM | Anthropic Claude API (document data extraction) |
 | Auth | JWT (python-jose), bcrypt |
 | Migrations | Alembic (auto-run on startup) |
 | Packaging | uv (Python), npm (frontend) |

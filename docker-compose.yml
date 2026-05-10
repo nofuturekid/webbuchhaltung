@@ -38,12 +38,20 @@ services:
       # BOOTSTRAP_ADMIN_PASSWORD: changeme
       # BOOTSTRAP_MANDANT_NAME: Meine GmbH
       # BOOTSTRAP_SKR_VARIANT: skr03
+      # LLM document capture (Phase 4): required for POST /documents/{id}/process.
+      # Without this key the endpoint returns 502. Safe to omit if not using Belegerfassung.
+      # ANTHROPIC_API_KEY: ""
+      # Document storage root (default: /tmp/webbuchhaltung-docs).
+      # In production, mount the docdata volume here to persist uploaded files.
+      # STORAGE_ROOT: /var/webbuchhaltung/docs
     depends_on:
       db:
         condition: service_healthy
     # Development-only volume mount for hot-reload. Remove for production builds.
     volumes:
       - ./src/backend:/app
+      # In production: uncomment to persist uploaded documents across restarts.
+      # - docdata:/tmp/webbuchhaltung-docs
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
 
   frontend:
@@ -55,3 +63,4 @@ services:
 
 volumes:
   pgdata:
+  # docdata: — uncomment when STORAGE_ROOT is mounted for persistent document storage
