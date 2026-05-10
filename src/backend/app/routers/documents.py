@@ -22,6 +22,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
     "/upload",
     response_model=DocumentResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Upload document",
 )
 async def upload_document(
     file: UploadFile = File(...),
@@ -35,7 +36,11 @@ async def upload_document(
     return DocumentResponse.model_validate(doc)
 
 
-@router.post("/{doc_id}/process", response_model=DocumentResponse)
+@router.post(
+    "/{doc_id}/process",
+    response_model=DocumentResponse,
+    summary="Process document with LLM extraction",
+)
 async def process_document(
     doc_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -48,7 +53,7 @@ async def process_document(
     return DocumentResponse.model_validate(doc)
 
 
-@router.get("/{doc_id}", response_model=DocumentResponse)
+@router.get("/{doc_id}", response_model=DocumentResponse, summary="Get document")
 async def get_document(
     doc_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -58,7 +63,7 @@ async def get_document(
     return DocumentResponse.model_validate(doc)
 
 
-@router.get("/{doc_id}/file")
+@router.get("/{doc_id}/file", summary="Download document file")
 async def download_document_file(
     doc_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -71,7 +76,11 @@ async def download_document_file(
     return Response(content=content, media_type=doc.mime_type)
 
 
-@router.get("/{doc_id}/suggestion", response_model=BookingSuggestion)
+@router.get(
+    "/{doc_id}/suggestion",
+    response_model=BookingSuggestion,
+    summary="Get booking suggestion",
+)
 async def get_booking_suggestion(
     doc_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -80,7 +89,11 @@ async def get_booking_suggestion(
     return await document_service.get_booking_suggestion(session, doc_id, mandant_id)
 
 
-@router.post("/{doc_id}/confirm", response_model=DocumentResponse)
+@router.post(
+    "/{doc_id}/confirm",
+    response_model=DocumentResponse,
+    summary="Confirm document and create booking",
+)
 async def confirm_document(
     doc_id: uuid.UUID,
     payload: ConfirmDocumentRequest,
@@ -94,7 +107,9 @@ async def confirm_document(
     return DocumentResponse.model_validate(doc)
 
 
-@router.post("/{doc_id}/reject", response_model=DocumentResponse)
+@router.post(
+    "/{doc_id}/reject", response_model=DocumentResponse, summary="Reject document"
+)
 async def reject_document(
     doc_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
@@ -107,7 +122,7 @@ async def reject_document(
     return DocumentResponse.model_validate(doc)
 
 
-@router.get("/", response_model=DocumentListResponse)
+@router.get("/", response_model=DocumentListResponse, summary="List documents")
 async def list_documents(
     page: int = 1,
     page_size: int = 50,
