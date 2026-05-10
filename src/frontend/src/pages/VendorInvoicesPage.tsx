@@ -69,7 +69,7 @@ export default function VendorInvoicesPage(): JSX.Element {
   const [dateTo, setDateTo] = useState('')
 
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false)
-  const [postInvoiceId, setPostInvoiceId] = useState<string | null>(null)
+  const [postInvoice, setPostInvoice] = useState<{ id: string; vatAmountCents: number } | null>(null)
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
 
   const [sepaDialogOpen, setSepaDialogOpen] = useState(false)
@@ -230,7 +230,7 @@ export default function VendorInvoicesPage(): JSX.Element {
                           <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => setPostInvoiceId(invoice.id)}
+                            onClick={() => setPostInvoice({ id: invoice.id, vatAmountCents: invoice.vat_amount_cents ?? 0 })}
                           >
                             <BookmarkAddIcon fontSize="small" />
                           </IconButton>
@@ -290,11 +290,12 @@ export default function VendorInvoicesPage(): JSX.Element {
       />
 
       {/* Post invoice dialog */}
-      {postInvoiceId && (
+      {postInvoice && (
         <PostInvoiceDialog
-          open={!!postInvoiceId}
-          onClose={() => setPostInvoiceId(null)}
-          invoiceId={postInvoiceId}
+          open={!!postInvoice}
+          onClose={() => setPostInvoice(null)}
+          invoiceId={postInvoice.id}
+          vatAmountCents={postInvoice.vatAmountCents}
         />
       )}
 

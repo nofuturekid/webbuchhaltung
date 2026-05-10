@@ -45,6 +45,7 @@ export type VendorInvoiceCreate = {
 
 export type PostInvoiceRequest = {
   expense_coa_id: string
+  vat_coa_id?: string
 }
 
 export type SepaExportRequest = {

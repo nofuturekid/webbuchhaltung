@@ -11,7 +11,7 @@ from app.errors import (
     VendorInvoiceImmutableError,
 )
 from app.models.account import ChartOfAccount
-from app.models.booking import Booking
+from app.models.booking import Booking, BookingGroup
 from app.models.vendor import Vendor, VendorInvoice
 from app.schemas.vendor import (
     VendorCreate,
@@ -207,12 +207,18 @@ async def post_vendor_invoice(
     user_id: uuid.UUID,
     expense_coa_id: uuid.UUID,
     skr_variant: str,
+    vat_coa_id: uuid.UUID | None = None,
 ) -> VendorInvoice:
     """GoBD-compliant posting of a vendor invoice (Eingangsrechnung).
 
-    Creates a double-entry booking:
-      SOLL  — expense_coa_id (chosen by user, e.g. office supplies)
+    Without vat_coa_id — creates a single double-entry booking:
+      SOLL  — expense_coa_id (chosen by user, e.g. office supplies), gross amount
       HABEN — AP account (1600 SKR03 / 3300 SKR04)
+
+    With vat_coa_id and vat_amount_cents > 0 — creates a Sammelbuchung (UStG §15):
+      SOLL  — expense_coa_id, net amount (gross minus VAT)
+      SOLL  — vat_coa_id, VAT amount (Vorsteuer)
+      HABEN — AP account, both bookings share entry_number and booking_group_id
     """
     invoice = await get_vendor_invoice(session, invoice_id, mandant_id)
 
@@ -234,17 +240,34 @@ async def post_vendor_invoice(
     ap_account_number = _AP_ACCOUNT.get(skr_variant, "1600")
     ap_account_id = await _get_account_id(session, mandant_id, ap_account_number)
 
+    do_vat_split = vat_coa_id is not None and invoice.vat_amount_cents > 0
+    net_cents = (
+        invoice.amount_cents - invoice.vat_amount_cents
+        if do_vat_split
+        else invoice.amount_cents
+    )
+    group_id: uuid.UUID | None = None
+    if do_vat_split:
+        booking_group = BookingGroup(
+            mandant_id=mandant_id,
+            description=f"Sammelbuchung {invoice.invoice_number}"[:60],
+        )
+        session.add(booking_group)
+        await session.flush()
+        group_id = booking_group.id
+
     booking = Booking(
         mandant_id=mandant_id,
         booking_type="entry",
         date_booking=invoice.invoice_date,
-        amount_cents=invoice.amount_cents,
+        amount_cents=net_cents,
         currency=invoice.currency,
         document_number=invoice.invoice_number[:12],
         notes=f"Eingangsrechnung {invoice.invoice_number}"[:60],
         coa_id=expense_coa_id,  # SOLL — expense account
         counter_coa_id=ap_account_id,  # HABEN — AP account
         status="draft",
+        booking_group_id=group_id,
         created_by=user_id,
     )
     session.add(booking)
@@ -266,6 +289,42 @@ async def post_vendor_invoice(
         mandant_id=mandant_id,
         user_id=user_id,
     )
+
+    if do_vat_split:
+        vat_booking = Booking(
+            mandant_id=mandant_id,
+            booking_type="entry",
+            date_booking=invoice.invoice_date,
+            amount_cents=invoice.vat_amount_cents,
+            currency=invoice.currency,
+            document_number=invoice.invoice_number[:12],
+            notes=f"Vorsteuer {invoice.invoice_number}"[:60],
+            coa_id=vat_coa_id,  # SOLL — Vorsteuer account
+            counter_coa_id=ap_account_id,  # HABEN — AP account
+            status="draft",
+            booking_group_id=group_id,
+            created_by=user_id,
+        )
+        session.add(vat_booking)
+        await session.flush()
+
+        vat_booking.status = "posted"
+        vat_booking.entry_number = entry_number  # same — Sammelbuchung
+
+        await write_audit(
+            session,
+            table_name="bookings",
+            record_id=vat_booking.id,
+            action="update",
+            change_summary={
+                "transition": "draft→posted",
+                "status": ["draft", "posted"],
+                "entry_number": [None, entry_number],
+                "vat_split": True,
+            },
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
 
     invoice.status = "posted"
     invoice.booking_id = booking.id

@@ -108,6 +108,7 @@ async def post_vendor_invoice_endpoint(
         current_user.id,
         payload.expense_coa_id,
         mandant.skr_variant,
+        payload.vat_coa_id,
     )
     return VendorInvoiceResponse.model_validate(invoice)
 

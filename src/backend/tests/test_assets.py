@@ -3,6 +3,8 @@
 import re
 import uuid
 
+import pytest
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +29,24 @@ async def _setup(
     session.add(UserMandant(user_id=user.id, mandant_id=mandant.id, role="admin"))
     await session.flush()
     await seed_skr_for_mandant(session, mandant.id, "skr03")
+
+    # Disposal gain/loss accounts not present in the base SKR03 seed
+    for acc_num, acc_name, acc_class in [
+        ("4855", "Verluste Anlagenabgang", "4xxx"),
+        ("2680", "Erträge aus Anlagenabgang", "2xxx"),
+    ]:
+        session.add(
+            ChartOfAccount(
+                mandant_id=mandant.id,
+                account_number=acc_num,
+                name=acc_name,
+                account_class=acc_class,
+                skr_variant="custom",
+                is_custom=True,
+                is_active=True,
+            )
+        )
+    await session.flush()
 
     # Resolve account IDs for asset (0320 = PKW) and depreciation expense (4900)
     coa_result = await session.execute(
@@ -389,3 +409,132 @@ async def test_mandant_isolation_asset(client, db_session):
 
     get_resp = await client.get(f"/api/v1/assets/{asset_id}", headers=headers_b)
     assert get_resp.status_code == 404
+
+
+# ── 12. Disposal with loss → booking to 4855 ──────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_dispose_with_loss_creates_loss_booking_to_4855(client, db_session):
+    """Disposing below net book value must create a loss booking with coa_id=4855.
+
+    Asset: 12000 cents over 12 months → 1000 cents/month depreciation.
+    After 1 month posted: net_book_value = 11000 cents.
+    Disposal at 5000 cents → net_remaining = 11000 - 5000 = 6000 > 0 → loss to 4855.
+    """
+    headers, _, mandant, coa_id, dep_id = await _setup(db_session)
+
+    resp = await client.post(
+        "/api/v1/assets/",
+        json=_asset_payload(
+            coa_id,
+            dep_id,
+            purchase_date="2026-01-15",
+            purchase_amount_cents=12000,
+            useful_life_months=12,
+            residual_value_cents=0,
+        ),
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    asset_id = resp.json()["id"]
+
+    # Post 1 month of depreciation → net_book_value drops to 11000
+    book_resp = await client.post(
+        f"/api/v1/assets/{asset_id}/book-depreciation",
+        json={"period_year": 2026, "period_month": 2},
+        headers=headers,
+    )
+    assert book_resp.status_code == 200, book_resp.text
+
+    # Dispose at 5000 → net_remaining = 11000 - 5000 = 6000 > 0 → loss booking to 4855
+    dispose_resp = await client.post(
+        f"/api/v1/assets/{asset_id}/dispose",
+        json={"disposal_date": "2026-06-30", "disposal_amount_cents": 5000},
+        headers=headers,
+    )
+    assert dispose_resp.status_code == 200, dispose_resp.text
+    assert dispose_resp.json()["status"] == "disposed"
+
+    # Resolve 4855 account id for this mandant
+    result = await db_session.execute(
+        select(ChartOfAccount).where(
+            ChartOfAccount.mandant_id == mandant.id,
+            ChartOfAccount.account_number == "4855",
+        )
+    )
+    loss_account = result.scalar_one()
+
+    # At least one posted booking must have coa_id == 4855 (loss account is the debit)
+    booking_result = await db_session.execute(
+        select(Booking).where(
+            Booking.mandant_id == mandant.id,
+            Booking.coa_id == loss_account.id,
+            Booking.status == "posted",
+        )
+    )
+    loss_bookings = booking_result.scalars().all()
+    assert (
+        len(loss_bookings) >= 1
+    ), "Expected at least one posted booking with coa_id=4855 (loss account)"
+
+
+# ── 13. Disposal with gain → booking to 2680 ──────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_dispose_with_gain_creates_gain_booking_to_2680(client, db_session):
+    """Disposing above net book value must create a gain booking with counter_coa_id=2680.
+
+    Asset: 10000 cents, no depreciation posted → net_book_value = 10000 cents.
+    Disposal at 15000 cents → net_remaining = 10000 - 15000 = -5000 < 0 → gain to 2680.
+    2680 is the counter_coa_id (HABEN side) in the gain booking.
+    """
+    headers, _, mandant, coa_id, dep_id = await _setup(db_session)
+
+    resp = await client.post(
+        "/api/v1/assets/",
+        json=_asset_payload(
+            coa_id,
+            dep_id,
+            purchase_date="2026-01-15",
+            purchase_amount_cents=10000,
+            useful_life_months=12,
+            residual_value_cents=0,
+        ),
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    asset_id = resp.json()["id"]
+
+    # No depreciation posted → net_book_value == purchase_amount == 10000
+    # Dispose at 15000 → net_remaining = 10000 - 15000 = -5000 < 0 → gain booking to 2680
+    dispose_resp = await client.post(
+        f"/api/v1/assets/{asset_id}/dispose",
+        json={"disposal_date": "2026-06-30", "disposal_amount_cents": 15000},
+        headers=headers,
+    )
+    assert dispose_resp.status_code == 200, dispose_resp.text
+    assert dispose_resp.json()["status"] == "disposed"
+
+    # Resolve 2680 account id for this mandant
+    result = await db_session.execute(
+        select(ChartOfAccount).where(
+            ChartOfAccount.mandant_id == mandant.id,
+            ChartOfAccount.account_number == "2680",
+        )
+    )
+    gain_account = result.scalar_one()
+
+    # At least one posted booking must have counter_coa_id == 2680 (gain account is the credit)
+    booking_result = await db_session.execute(
+        select(Booking).where(
+            Booking.mandant_id == mandant.id,
+            Booking.counter_coa_id == gain_account.id,
+            Booking.status == "posted",
+        )
+    )
+    gain_bookings = booking_result.scalars().all()
+    assert (
+        len(gain_bookings) >= 1
+    ), "Expected at least one posted booking with counter_coa_id=2680 (gain account)"
