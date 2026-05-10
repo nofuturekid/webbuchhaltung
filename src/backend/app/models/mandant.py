@@ -43,3 +43,5 @@ class Mandant(Base, TimestampMixin):
     smtp_password: Mapped[str | None] = mapped_column(String(500))
     smtp_from: Mapped[str | None] = mapped_column(String(254))
     smtp_from_name: Mapped[str | None] = mapped_column(String(200))
+    email_salutation: Mapped[str | None] = mapped_column(String(500))
+    email_closing: Mapped[str | None] = mapped_column(String(500))
