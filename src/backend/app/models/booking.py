@@ -116,7 +116,7 @@ class Booking(Base, TimestampMixin):
 
     # bank type only (NULL for entry)
     bank_account_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid(as_uuid=True)
-    )  # FK → bank_accounts (Phase 2)
+        Uuid(as_uuid=True), ForeignKey("bank_accounts.id")
+    )
     recipient_name: Mapped[str | None] = mapped_column(String(255))
     foreign_bank_account: Mapped[str | None] = mapped_column(String(50))

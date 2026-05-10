@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  backend:
+    repository: ghcr.io/webbuchhaltung/backend
+    tag: "0.5.0"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: ghcr.io/webbuchhaltung/frontend
+    tag: "0.5.0"
+    pullPolicy: IfNotPresent
+
+service:
+  backend:
+    port: 8000
+  frontend:
+    port: 80
+
+ingress:
+  enabled: false
+  className: nginx
+  host: webbuchhaltung.example.com
+  tls: []
+
+config:
+  corsOrigins: "https://webbuchhaltung.example.com"
+  storageRoot: "/var/webbuchhaltung/docs"
+  bootstrapSkrVariant: "skr03"
+  bootstrapMandantName: "Meine Firma"
+
+secrets:
+  secretKey: ""         # REQUIRED — set via --set or values override
+  databaseUrl: ""       # REQUIRED
+  anthropicApiKey: ""   # optional
+
+storage:
+  size: 5Gi
+  storageClass: ""      # uses default StorageClass if empty
+
+postgresql:
+  enabled: true         # set false to use external DATABASE_URL
+  image: postgres:16
+  database: webbuchhaltung
+  username: postgres
+  password: postgres    # override in production
