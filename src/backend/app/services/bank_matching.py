@@ -79,7 +79,7 @@ async def find_match_candidates(
                     amount_cents=b.amount_cents,
                     description=b.notes,
                     entry_number=b.entry_number,  # type: ignore[arg-type]
-                    score=score,
+                    score=round(score, 4),
                 )
             )
 
