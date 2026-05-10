@@ -300,9 +300,10 @@ async def match_transaction(
 async def ignore_transaction(
     transaction_id: uuid.UUID,
     mandant_id: uuid.UUID = Depends(get_mandant_id),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> BankTransaction:
-    return await apply_ignore(session, transaction_id, mandant_id)
+    return await apply_ignore(session, transaction_id, mandant_id, current_user.id)
 
 
 @router.post(

@@ -128,11 +128,21 @@ async def apply_ignore(
     session: AsyncSession,
     transaction_id: uuid.UUID,
     mandant_id: uuid.UUID,
+    user_id: uuid.UUID,
 ) -> BankTransaction:
     """Mark a bank transaction as ignored (no matching booking needed)."""
     tx = await _get_transaction(session, transaction_id, mandant_id)
     tx.status = "ignored"
     await session.flush()
+    await write_audit(
+        session,
+        table_name="bank_transactions",
+        record_id=transaction_id,
+        action="update",
+        change_summary={"status": ["unmatched", "ignored"]},
+        mandant_id=mandant_id,
+        user_id=user_id,
+    )
     return tx
 
 
@@ -146,15 +156,38 @@ async def apply_unmatch(
     tx = await _get_transaction(session, transaction_id, mandant_id)
     if tx.status != "matched":
         raise ConflictError("Transaction is not matched.")
-    if tx.booking_id:
+    prior_booking_id = tx.booking_id
+    if prior_booking_id:
         booking = (
-            await session.execute(select(Booking).where(Booking.id == tx.booking_id))
+            await session.execute(select(Booking).where(Booking.id == prior_booking_id))
         ).scalar_one_or_none()
         if booking:
             booking.bank_account_id = None
     tx.status = "unmatched"
     tx.booking_id = None
     await session.flush()
+    if prior_booking_id:
+        await write_audit(
+            session,
+            table_name="bookings",
+            record_id=prior_booking_id,
+            action="update",
+            change_summary={"bank_unmatch": str(transaction_id)},
+            mandant_id=mandant_id,
+            user_id=user_id,
+        )
+    await write_audit(
+        session,
+        table_name="bank_transactions",
+        record_id=transaction_id,
+        action="update",
+        change_summary={
+            "status": ["matched", "unmatched"],
+            "booking_id": str(prior_booking_id),
+        },
+        mandant_id=mandant_id,
+        user_id=user_id,
+    )
     return tx
 
 
