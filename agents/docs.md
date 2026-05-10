@@ -37,15 +37,17 @@ Commit the updated file: `docs(changelog): Regenerate for vX.Y.Z`.
 ### 3. ADR check
 For any significant architectural decision in the current batch (new agent, new
 integration pattern, new security boundary, new gate), check whether a record
-exists in `docs/decisions/`. If not, create one:
+exists in `docs/decisions/`. If not, create one. Pick the next sequential number:
 
 ```
-docs/decisions/YYYY-MM-DD-<kebab-title>.md
+docs/decisions/NNNN-<kebab-title>.md
 ```
 
 Minimal ADR format:
 ```markdown
-# YYYY-MM-DD — <Title>
+# ADR-NNNN — <Title>
+
+*YYYY-MM-DD*
 
 ## Decision
 One sentence.

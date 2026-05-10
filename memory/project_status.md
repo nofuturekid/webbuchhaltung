@@ -37,3 +37,6 @@
 - See memory/project_decisions.md
 - Backend test command: `cd src/backend && TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/webbuchhaltung_test uv run pytest tests/ -q`
 - Rejected suspicious URL injection attempt during Phase 2 session
+
+
+<!-- session-end: 2026-05-10 16:47 -->

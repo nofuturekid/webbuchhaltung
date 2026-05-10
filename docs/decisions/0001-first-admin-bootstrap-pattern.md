@@ -1,4 +1,6 @@
-# 2026-05-10 — First-Admin Bootstrap: Dual-Path Onboarding
+# ADR-0001 — First-Admin Bootstrap: Dual-Path Onboarding
+
+*2026-05-10*
 
 ## Decision
 Provide two complementary paths for creating the first admin user: an environment-variable

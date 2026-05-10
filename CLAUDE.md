@@ -91,7 +91,7 @@ Exceptions (remain German):
 ## Session End — ALWAYS run these steps last
 1. Update `memory/project_status.md` with what was completed and what is still open
 2. Write open tasks to `.claude/state/<agent>-current.md`
-3. For any new architecture decision: create `docs/decisions/YYYY-MM-DD-<title>.md`
+3. For any new architecture decision: create `docs/decisions/NNNN-<title>.md` (next sequential number)
 
 ## Orchestration — How the Orchestrator Works
 

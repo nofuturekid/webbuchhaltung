@@ -1,4 +1,6 @@
-# 2026-05-10 — Self-Disabling Public Setup Endpoint
+# ADR-0002 — Self-Disabling Public Setup Endpoint
+
+*2026-05-10*
 
 ## Decision
 The `POST /api/v1/setup` endpoint returns HTTP 404 ("Setup already completed") as soon

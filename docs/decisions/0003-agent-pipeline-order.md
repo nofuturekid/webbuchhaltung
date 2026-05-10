@@ -1,4 +1,6 @@
-# 2026-05-10 — Agent Pipeline Order for Feature Branches
+# ADR-0003 — Agent Pipeline Order for Feature Branches
+
+*2026-05-10*
 
 ## Decision
 Feature branches follow a fixed agent pipeline before merging to develop/main:
